@@ -1,0 +1,34 @@
+
+# BUILD / COMPILED FILES
+
+bin/
+obj/
+out/
+
+# USER-SPECIFIC FILES
+
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VISUAL STUDIO
+
+.vs/
+
+# LOGS
+
+*.log
+
+
+
+# APP SETTINGS (SECRETS)
+
+appsettings.Development.json
+app.db
+
+# OS FILES
+
+.DS_Store
+Thumbs.db
+
