@@ -1,0 +1,56 @@
+@model List<itpayroll.Models.Attendance>
+@{
+    ViewData["Title"] = "Attendance Records";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Attendance Records</h2>
+    <a asp-action="Create" class="btn btn-success">Log Attendance</a>
+</div>
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+        <input type="date" name="date" value="@(ViewBag.SelectedDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-action="Index" class="btn btn-secondary">Clear</a>
+    </div>
+</form>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Employee</th>
+            <th>Date</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Total Hours</th>
+            <th>OT Hours</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in Model)
+        {
+            <tr>
+                <td>@a.Employee.User?.FirstName @a.Employee.User?.LastName</td>
+                <td>@a.Date.ToString("MMM dd, yyyy")</td>
+                <td>@a.TimeIn.ToString(@"hh\:mm")</td>
+                <td>@a.TimeOut.ToString(@"hh\:mm")</td>
+                <td>@a.TotalHours.ToString("N2")</td>
+                <td>@a.OvertimeHours.ToString("N2")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-primary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="7" class="text-center text-muted">No attendance records found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

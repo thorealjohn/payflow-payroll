@@ -1,20 +1,30 @@
-﻿using System;
+﻿using itpayroll.Data;
+using itpayroll.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace itpayroll.Services
 {
     public class AttendanceService
     {
-        public double ComputeHours(TimeSpan timeIn, TimeSpan timeOut)
+        private readonly ApplicationDbContext _context;
+
+        public AttendanceService(ApplicationDbContext context)
         {
-            return (timeOut - timeIn).TotalHours;
+            _context = context;
         }
 
-        public double ComputeOvertime(double totalHours)
+        public async Task<(double hours, double overtime)> GetHoursAsync(int employeeId, DateTime start, DateTime end)
         {
-            if (totalHours > 8)
-                return totalHours - 8;
+            var records = await _context.Attendances
+                .Where(a => a.EmployeeId == employeeId &&
+                            a.Date >= start &&
+                            a.Date <= end)
+                .ToListAsync();
 
-            return 0;
+            double totalHours = records.Sum(a => a.TotalHours);
+            double overtime = records.Sum(a => a.OvertimeHours);
+
+            return (totalHours, overtime);
         }
     }
 }

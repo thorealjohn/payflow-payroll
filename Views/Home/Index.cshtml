@@ -1,8 +1,84 @@
-﻿@{
+﻿ @{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    .hero {
+        background: linear-gradient(to right, #16a34a, #15803d);
+        color: white;
+        padding: 80px 0;
+        border-radius: 12px;
+    }
+
+    .feature-card {
+        border: none;
+        border-radius: 12px;
+        transition: 0.3s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .cta {
+        background-color: #f8fafc;
+        padding: 60px 0;
+        border-radius: 12px;
+    }
+</style>
+
+<div class="container mt-5">
+
+    <!-- HERO -->
+    <div class="hero text-center">
+
+        <h1 class="display-5 fw-bold">PayFlow Payroll System</h1>
+        <p class="lead">Streamline payroll, attendance, and government deductions with ease.</p>
+
+        <div class="mt-4">
+            <a class="btn btn-light btn-lg text-success me-2" href="/Identity/Account/Login">Login</a>
+            <a class="btn btn-outline-light btn-lg" href="/Identity/Account/Register">Register</a>
+        </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="row mt-5 text-center">
+        <div class="col-md-3">
+            <div class="card feature-card p-4">
+                <h5>Employees</h5>
+                <p class="text-muted">Manage employee records efficiently.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card feature-card p-4">
+                <h5>Attendance</h5>
+                <p class="text-muted">Track work hours and attendance.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card feature-card p-4">
+                <h5>Payroll</h5>
+                <p class="text-muted">Automate salary calculations.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card feature-card p-4">
+                <h5>Deductions</h5>
+                <p class="text-muted">Handle SSS, PhilHealth, Pag-IBIG.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta text-center mt-5">
+        <h3 class="fw-bold">Start managing your payroll today</h3>
+        <p class="text-muted">Simple. Efficient. Reliable.</p>
+
+        <a class="btn btn-success btn-lg mt-3" href="/Identity/Account/Register">
+            Get Started
+        </a>
+    </div>
+
 </div>

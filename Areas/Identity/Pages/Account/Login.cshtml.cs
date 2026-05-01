@@ -2,30 +2,45 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
+using itpayroll.Areas.Identity.Data;
+using itpayroll.Models;
+using itpayroll.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
 
 namespace itpayroll.Areas.Identity.Pages.Account
 {
     public class LoginModel : PageModel
     {
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly itpayroll.Data.ApplicationDbContext _context;
+        private readonly AuditService _auditService;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<LoginModel> logger,
+            UserManager<ApplicationUser> userManager,
+            itpayroll.Data.ApplicationDbContext context,
+            AuditService auditService)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _userManager = userManager;
+            _context = context;
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -103,7 +118,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= Url.Content("~/");
+            returnUrl ??= "/Dashboard";
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
@@ -115,7 +130,19 @@ namespace itpayroll.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
-                    return LocalRedirect(returnUrl);
+
+                    var user = await _userManager.FindByEmailAsync(Input.Email);
+                    if (user != null)
+                    {
+                            await _auditService.LogAsync(AuditAction.Login, "Account");
+                    }
+
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl != "/")
+                    {
+                        return LocalRedirect(returnUrl);
+                    }
+
+                    return RedirectToAction("Index", "Dashboard");
                 }
                 if (result.RequiresTwoFactor)
                 {
@@ -128,6 +155,17 @@ namespace itpayroll.Areas.Identity.Pages.Account
                 }
                 else
                 {
+                    var attemptedUser = await _userManager.FindByEmailAsync(Input.Email);
+                    if (attemptedUser != null)
+                    {
+                        var dbUser = await _context.Users.FindAsync(attemptedUser.Id);
+
+                        if (dbUser != null)
+                        {
+                            await _auditService.LogAsync(AuditAction.FailedLogin, "Account");
+                        }
+                    }
+
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                     return Page();
                 }

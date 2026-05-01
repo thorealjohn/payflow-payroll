@@ -1,0 +1,50 @@
+@model List<itpayroll.Models.Payroll>
+@{
+    ViewData["Title"] = "Payroll Records";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Payroll Records</h2>
+    <a asp-action="Process" class="btn btn-success">Process Payroll</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Employee</th>
+            <th>Period</th>
+            <th>Gross Pay</th>
+            <th>Deductions</th>
+            <th>Net Pay</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in Model)
+        {
+            var statusBadge = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : p.Status == itpayroll.Models.PayrollStatus.Processed ? "bg-primary" : "bg-secondary";
+            <tr>
+                <td>@p.Employee.User?.FirstName @p.Employee.User?.LastName</td>
+                <td>@p.PeriodStart.ToString("MMM dd") - @p.PeriodEnd.ToString("MMM dd, yyyy")</td>
+                <td>₱@p.GrossPay.ToString("N2")</td>
+                <td>₱@p.TotalDeductions.ToString("N2")</td>
+                <td><strong>₱@p.NetPay.ToString("N2")</strong></td>
+                <td><span class="badge @statusBadge">@p.Status</span></td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@p.PayrollId" class="btn btn-sm btn-info">View</a>
+                    @if (p.Status == itpayroll.Models.PayrollStatus.Processed)
+                    {
+                        <a asp-action="Release" asp-route-id="@p.PayrollId" class="btn btn-sm btn-success">Release</a>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="7" class="text-center text-muted">No payroll records found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

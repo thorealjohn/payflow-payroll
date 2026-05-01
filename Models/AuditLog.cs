@@ -12,8 +12,7 @@ namespace itpayroll.Models
         [Required]
         public string UserId { get; set; } = string.Empty;
 
-        [ForeignKey(nameof(UserId))]
-        public ApplicationUser? User { get; set; }
+        public string? UserEmail { get; set; }
 
         [Required]
         public AuditAction Action { get; set; }

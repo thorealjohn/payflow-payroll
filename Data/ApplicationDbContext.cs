@@ -19,10 +19,14 @@ namespace itpayroll.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            // AuditLog index (for performance)
+            builder.Entity<AuditLog>()
+                .HasIndex(a => a.Timestamp);
+
             base.OnModelCreating(builder);
             // Soft delete + active filter
             builder.Entity<ApplicationUser>()
-                .HasQueryFilter(u => !u.IsDeleted && u.IsActive);
+                .HasQueryFilter(u => !u.IsDeleted);
 
             // Unique Employee Number
             builder.Entity<Employee>()
@@ -32,19 +36,6 @@ namespace itpayroll.Data
             // One User = One Employee
             builder.Entity<Employee>()
                 .HasIndex(e => e.UserId)
-                .IsUnique();
-
-            // Relationship constraint
-            builder.Entity<Employee>()
-                .HasOne(e => e.User)
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Extra safety
-            builder.Entity<ApplicationUser>()
-                .HasIndex(u => u.Email)
                 .IsUnique();
 
             // Unique attendance per employee per day
@@ -59,13 +50,13 @@ namespace itpayroll.Data
                 .HasForeignKey(d => d.PayrollId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // AuditLog relation
-            builder.Entity<AuditLog>()
-                .HasOne(a => a.User)
+            builder.Entity<Employee>()
+                .HasOne(e => e.User)
                 .WithMany()
-                .HasForeignKey(a => a.UserId)
+                .HasForeignKey(e => e.UserId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
+
 
             // Prevent duplicate payroll per employee per period
             builder.Entity<Payroll>()

@@ -1,0 +1,46 @@
+@model List<itpayroll.Models.Employee>
+@{
+    ViewData["Title"] = "Employees";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Employees</h2>
+    <a asp-action="Create" class="btn btn-success">Add Employee</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Employee #</th>
+            <th>Name</th>
+            <th>Basic Salary</th>
+            <th>Status</th>
+            <th>Hire Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var emp in Model)
+        {
+            var badgeClass = emp.Status == itpayroll.Models.EmploymentStatus.Active ? "bg-success" : emp.Status == itpayroll.Models.EmploymentStatus.Inactive ? "bg-secondary" : "bg-danger";
+            <tr>
+                <td><strong>@emp.EmployeeNumber</strong></td>
+                <td>@emp.User?.FirstName @emp.User?.LastName</td>
+                <td>₱@emp.BasicSalary.ToString("N2")</td>
+                <td><span class="badge @badgeClass">@emp.Status</span></td>
+                <td>@emp.HireDate.ToString("MMM dd, yyyy")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-info">View</a>
+                    <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-primary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted">No employees found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

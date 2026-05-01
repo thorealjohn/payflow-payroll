@@ -6,9 +6,9 @@ namespace itpayroll.Areas.Identity.Data
 {
     public class ApplicationUser : IdentityUser
     {
-        // =========================
+        
         // BASIC INFO
-        // =========================
+        
 
         [Required]
         [MaxLength(50)]
@@ -23,17 +23,17 @@ namespace itpayroll.Areas.Identity.Data
         [NotMapped]
         public string FullName => $"{FirstName} {LastName}";
 
-        // =========================
+        
         // ACCOUNT STATUS
-        // =========================
+        
 
         public bool IsActive { get; set; } = true;
 
         public bool IsDeleted { get; set; } = false; // soft delete
 
-        // =========================
+        
         // AUDIT FIELDS
-        // =========================
+        
 
         [Required]
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
@@ -47,15 +47,15 @@ namespace itpayroll.Areas.Identity.Data
         [StringLength(450)]
         public string ModifiedBy { get; set; } = string.Empty;
 
-        // =========================
+        
         // SECURITY / LOGIN TRACKING
-        // =========================
+        
 
         public DateTime? LastLoginDate { get; set; }
 
-        // =========================
+        
         // CONCURRENCY CONTROL
-        // =========================
+        
 
         [Timestamp]
         public byte[]? RowVersion { get; set; }
