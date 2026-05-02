@@ -3,50 +3,57 @@
     ViewData["Title"] = "Log Attendance";
 }
 
-<h2>Log Attendance</h2>
+<div class="mb-4">
+    <h4 class="fw-bold mb-0">Log Attendance</h4>
+    <small class="text-muted">Record employee attendance and working hours</small>
+</div>
 
-<form asp-action="Create" method="post">
-    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-    <div class="mb-3">
-        <label asp-for="EmployeeId" class="form-label"></label>
-        <select asp-for="EmployeeId" class="form-select" asp-items="ViewBag.Employees">
-            <option value="">-- Select Employee --</option>
-        </select>
-        <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            <div class="mb-3">
+                <label asp-for="EmployeeId" class="form-label"></label>
+                <select asp-for="EmployeeId" class="form-select" asp-items="ViewBag.Employees">
+                    <option value="">-- Select Employee --</option>
+                </select>
+                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Date" class="form-label"></label>
+                <input asp-for="Date" class="form-control" type="date" />
+                <span asp-validation-for="Date" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="TimeIn" class="form-label"></label>
+                    <input asp-for="TimeIn" class="form-control" type="time" />
+                    <span asp-validation-for="TimeIn" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label asp-for="TimeOut" class="form-label"></label>
+                    <input asp-for="TimeOut" class="form-control" type="time" />
+                    <span asp-validation-for="TimeOut" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label asp-for="OvertimeHours" class="form-label"></label>
+                    <input asp-for="OvertimeHours" class="form-control" type="number" step="0.5" min="0" max="24" />
+                    <span asp-validation-for="OvertimeHours" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-success">Log Attendance</button>
+                <a asp-action="Index" class="btn btn-secondary">Back to Records</a>
+            </div>
+        </form>
     </div>
-
-    <div class="mb-3">
-        <label asp-for="Date" class="form-label"></label>
-        <input asp-for="Date" class="form-control" type="date" />
-        <span asp-validation-for="Date" class="text-danger"></span>
-    </div>
-
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <label asp-for="TimeIn" class="form-label"></label>
-            <input asp-for="TimeIn" class="form-control" type="time" />
-            <span asp-validation-for="TimeIn" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <label asp-for="TimeOut" class="form-label"></label>
-            <input asp-for="TimeOut" class="form-control" type="time" />
-            <span asp-validation-for="TimeOut" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <label asp-for="OvertimeHours" class="form-label"></label>
-            <input asp-for="OvertimeHours" class="form-control" type="number" step="0.5" min="0" max="24" />
-            <span asp-validation-for="OvertimeHours" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div class="mt-3">
-        <button type="submit" class="btn btn-success">Log Attendance</button>
-        <a asp-action="Index" class="btn btn-secondary">Back to Records</a>
-    </div>
-</form>
+</div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

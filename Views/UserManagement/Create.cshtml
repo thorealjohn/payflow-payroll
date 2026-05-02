@@ -3,87 +3,94 @@
     ViewData["Title"] = "Create User";
 }
 
-<h2>Create User</h2>
+<div class="mb-4">
+    <h4 class="fw-bold mb-0">Create User</h4>
+    <small class="text-muted">Add a new system user</small>
+</div>
 
 <div class="alert alert-info">
     You can only create users with roles lower than your own in the hierarchy.
 </div>
 
-<form asp-action="Create" method="post">
-    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label asp-for="FirstName" class="form-label"></label>
-            <input asp-for="FirstName" class="form-control" />
-            <span asp-validation-for="FirstName" class="text-danger"></span>
-        </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="FirstName" class="form-label"></label>
+                    <input asp-for="FirstName" class="form-control" />
+                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
 
-        <div class="col-md-6 mb-3">
-            <label asp-for="LastName" class="form-label"></label>
-            <input asp-for="LastName" class="form-control" />
-            <span asp-validation-for="LastName" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" type="email" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label asp-for="Password" class="form-label"></label>
-            <input asp-for="Password" class="form-control" type="password" />
-            <span asp-validation-for="Password" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <label asp-for="ConfirmPassword" class="form-label"></label>
-            <input asp-for="ConfirmPassword" class="form-control" type="password" />
-            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Role" class="form-label"></label>
-        <select asp-for="Role" class="form-select" asp-items="ViewBag.AllowedRoles">
-            <option value="">-- Select Role --</option>
-        </select>
-        <span asp-validation-for="Role" class="text-danger"></span>
-        <small class="text-muted">You can only assign roles within your authority level.</small>
-    </div>
-
-    @if (ViewBag.RequiresEmployeeCreation == true)
-    {
-        <div class="card border-primary mb-3">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Employee Information</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="EmployeeNumber" class="form-label"></label>
-                        <input asp-for="EmployeeNumber" class="form-control" placeholder="e.g. EMP-001" />
-                        <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="BasicSalary" class="form-label"></label>
-                        <input asp-for="BasicSalary" class="form-control" type="number" step="0.01" />
-                        <span asp-validation-for="BasicSalary" class="text-danger"></span>
-                    </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LastName" class="form-label"></label>
+                    <input asp-for="LastName" class="form-control" />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
                 </div>
             </div>
-        </div>
-    }
 
-    <div class="mt-3">
-        <button type="submit" class="btn btn-success">Create User</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" type="email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" type="password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" type="password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Role" class="form-label"></label>
+                <select asp-for="Role" class="form-select" asp-items="ViewBag.AllowedRoles">
+                    <option value="">-- Select Role --</option>
+                </select>
+                <span asp-validation-for="Role" class="text-danger"></span>
+                <small class="text-muted">You can only assign roles within your authority level.</small>
+            </div>
+
+            @if (ViewBag.RequiresEmployeeCreation == true)
+            {
+                <div class="card border-primary mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Employee Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="EmployeeNumber" class="form-label"></label>
+                                <input asp-for="EmployeeNumber" class="form-control" placeholder="e.g. EMP-001" />
+                                <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="BasicSalary" class="form-label"></label>
+                                <input asp-for="BasicSalary" class="form-control" type="number" step="0.01" />
+                                <span asp-validation-for="BasicSalary" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-success">Create User</button>
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
-</form>
+</div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

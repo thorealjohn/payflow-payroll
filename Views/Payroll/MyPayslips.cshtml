@@ -3,26 +3,33 @@
     ViewData["Title"] = "My Payslips";
 }
 
-<h2>My Payslips</h2>
+<div class="mb-4">
+    <h4 class="fw-bold mb-0">My Payslips</h4>
+    <small class="text-muted">View your salary payslips</small>
+</div>
 
-<div class="list-group">
-    @foreach (var item in Model)
-    {
-        var statusBadge = item.Payroll.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : "bg-primary";
-        <a asp-action="MyPayslip" asp-route-id="@item.Payroll.PayrollId" class="list-group-item list-group-item-action">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>@item.Payroll.PeriodStart.ToString("MMM dd") - @item.Payroll.PeriodEnd.ToString("MMM dd, yyyy")</strong>
-                </div>
-                <div>
-                    <span class="badge @statusBadge me-2">@item.Payroll.Status</span>
-                    <strong class="text-primary">₱@item.Payroll.NetPay.ToString("N2")</strong>
-                </div>
-            </div>
-        </a>
-    }
-    @if (!Model.Any())
-    {
-        <div class="list-group-item text-center text-muted">No payslip records found.</div>
-    }
+<div class="card">
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            @foreach (var item in Model)
+            {
+                var statusBadge = item.Payroll.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : "bg-primary";
+                <a asp-action="MyPayslip" asp-route-id="@item.Payroll.PayrollId" class="list-group-item list-group-item-action px-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>@item.Payroll.PeriodStart.ToString("MMM dd") - @item.Payroll.PeriodEnd.ToString("MMM dd, yyyy")</strong>
+                        </div>
+                        <div>
+                            <span class="badge @statusBadge me-2">@item.Payroll.Status</span>
+                            <strong class="text-primary">₱@item.Payroll.NetPay.ToString("N2")</strong>
+                        </div>
+                    </div>
+                </a>
+            }
+            @if (!Model.Any())
+            {
+                <div class="list-group-item text-center text-muted py-4">No payslip records found.</div>
+            }
+        </div>
+    </div>
 </div>

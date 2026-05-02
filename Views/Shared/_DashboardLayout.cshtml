@@ -96,11 +96,11 @@
                             @User.Identity?.Name
                         </li>
                         <li><hr class="dropdown-divider"></li>
-                        <li class="px-3 py-2 d-flex justify-content-between align-items-center">
+                                        <li class="px-3 py-2 d-flex justify-content-between align-items-center">
                             <span>Dark Mode</span>
 
                             <label class="switch mb-0">
-                                <input type="checkbox" id="themeToggle" onchange="toggleDarkMode()">
+                                <input type="checkbox" id="themeToggle" onclick="toggleDarkMode()">
                                 <span class="slider"></span>
                             </label>
                         </li>
@@ -131,10 +131,12 @@
         document.addEventListener("DOMContentLoaded", function() {
             initTheme();
             initSidebar();
-                 const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', (e) => e.stopPropagation());
-        }
+
+            // Prevent dropdown from closing when interacting with dark mode toggle
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', (e) => e.stopPropagation());
+            }
         });
 
         function toggleDarkMode() {
