@@ -1,0 +1,342 @@
+﻿
+/* SWITCH CONTAINER */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* HIDE DEFAULT CHECKBOX */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* SLIDER BACKGROUND */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 20px;
+}
+
+    /* SLIDER CIRCLE */
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+/* WHEN ACTIVE */
+input:checked + .slider {
+    background-color: #198754;
+}
+
+    input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+
+.kpi-card {
+    padding: 20px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.kpi-label {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.kpi-value {
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+}
+
+.card {
+    border-radius: 12px;
+}
+
+.table th {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.table td {
+    font-size: 13px;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f8fafc;
+}
+
+.logo-full {
+    letter-spacing: 1px;
+    font-size: 20px;
+}
+
+.logo-mini {
+    font-size: 18px;
+    display: none;
+    font-weight: bold;
+}
+
+.sidebar.collapsed .logo-mini {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.sidebar.collapsed .logo-full {
+    display: none;
+}
+
+.sidebar.collapsed .logo-mini {
+    display: block;
+}
+
+.nav-link.active {
+    background: rgba(255,255,255,0.25);
+    font-weight: 600;
+    transform: scale(1.05);
+}
+
+.sidebar {
+    height: 100vh;
+    width: 250px;
+    position: fixed;
+    background: linear-gradient(180deg, #14532d, #052e16);
+    color: white;
+    padding-top: 20px;
+    transition: all 0.3s;
+    z-index: 1000;
+}
+
+    .sidebar.collapsed {
+        width: 70px;
+    }
+
+    .sidebar a {
+        display: flex;
+        align-items: center;
+        color: rgba(255,255,255,0.85);
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin: 5px 10px;
+        transition: all 0.25s ease;
+    }
+
+    .sidebar i {
+        width: 20px;
+        text-align: center;
+    }
+
+    .sidebar a:hover {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        transform: translateX(5px);
+    }
+
+    .sidebar .text {
+        margin-left: 10px;
+    }
+
+    .sidebar.collapsed .text {
+        display: none;
+    }
+
+.content {
+    margin-left: 250px;
+    padding: 25px;
+    transition: all 0.3s;
+    overflow: visible !important;
+}
+
+    .content.expanded {
+        margin-left: 70px;
+    }
+
+.avatar {
+    width: 30px;
+    height: 30px;
+    background: #198754;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.notification-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    background: red;
+    border-radius: 50%;
+}
+
+.topbar {
+    position: relative;
+    z-index: 1001;
+    padding: 12px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    overflow: visible !important;
+}
+
+.toggle-btn {
+    cursor: pointer;
+    font-size: 20px;
+    margin-right: 15px;
+}
+
+.dark-mode {
+    background: #0f172a; /* deep blue-gray (better than pure black) */
+    color: #e5e7eb;
+}
+
+html.dark-mode body {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+    .dark-mode .content {
+        background: #0f172a;
+    }
+
+    .dark-mode .topbar {
+        background: #1e293b;
+        color: #e5e7eb;
+    }
+
+    .dark-mode .sidebar {
+        background: linear-gradient(180deg, #14532d, #052e16);
+    }
+
+    .dark-mode .card,
+    .dark-mode .kpi-card {
+        background: #1e293b;
+        color: #e5e7eb;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .dark-mode .kpi-label {
+        color: #94a3b8;
+    }
+
+    .dark-mode .kpi-value {
+        color: #f8fafc;
+    }
+
+    .dark-mode table,
+    .dark-mode table thead,
+    .dark-mode table tbody,
+    .dark-mode table tr,
+    .dark-mode table td,
+    .dark-mode table th {
+        background-color: #1e293b;
+        color: #e5e7eb;
+    }
+
+        /* Header style */
+        .dark-mode thead th {
+            color: #94a3b8;
+        }
+
+        /* Borders */
+        .dark-mode tbody tr {
+            border-color: #334155;
+        }
+
+            /* Hover effect (important for SaaS feel) */
+            .dark-mode tbody tr:hover {
+                background-color: #334155;
+            }
+
+    .dark-mode a {
+        color: #22c55e;
+    }
+
+        .dark-mode a:hover {
+            color: #4ade80;
+        }
+
+    .dark-mode .btn-light {
+        background: #334155;
+        color: #e5e7eb;
+        border: none;
+    }
+
+        .dark-mode .btn-light:hover {
+            background: #475569;
+        }
+
+    .dark-mode .avatar {
+        background: #22c55e;
+    }
+
+body, .card, .topbar, .sidebar {
+    transition: all 0.3s ease;
+}
+
+.dropdown {
+    position: relative;
+    z-index: 1002;
+}
+
+.dropdown-menu {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-radius: 12px;
+    border: none;
+    padding: 8px 0;
+    min-width: 220px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    z-index: 99999 !important;
+}
+
+.dark-mode .dropdown-menu {
+    background-color: #1e293b !important;
+    color: #e5e7eb !important;
+}
+.dark-mode .dropdown-item {
+    color: #e5e7eb !important;
+}
+
+    .dark-mode .dropdown-item:hover {
+        background-color: #334155;
+    }
+.dropdown-item {
+    font-size: 14px;
+    color: #111827 !important;
+}
+
+    .dropdown-item:hover {
+        background-color: #f3f4f6;
+    }
