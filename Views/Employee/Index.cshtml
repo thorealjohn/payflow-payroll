@@ -8,7 +8,20 @@
         <h4 class="fw-bold mb-0">Employees</h4>
         <small class="text-muted">Manage employee records and information</small>
     </div>
-    <a asp-action="Create" class="btn btn-success">+ Add Employee</a>
+    <div class="d-flex gap-2">
+        <form asp-action="Index" method="get" class="d-flex gap-2">
+            <input type="text" name="searchString" class="form-control" placeholder="Search by name, number, shift..." value="@ViewBag.CurrentFilter" />
+            <button type="submit" class="btn btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter))
+            {
+                <a asp-action="Index" class="btn btn-secondary">Clear</a>
+            }
+        </form>
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+        {
+            <a asp-action="Create" class="btn btn-success">+ Add Employee</a>
+        }
+    </div>
 </div>
 
 <div class="card">
@@ -36,7 +49,7 @@
                         <td class="px-4">@emp.HireDate.ToString("MMM dd, yyyy")</td>
                         <td class="text-end px-4">
                             <a asp-action="Details" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-info">View</a>
-                            <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-warning">Edit</a>
                             <a asp-action="Delete" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-danger">Delete</a>
                         </td>
                     </tr>

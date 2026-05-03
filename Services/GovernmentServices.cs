@@ -1,15 +1,25 @@
-﻿namespace itpayroll.Services
+﻿using itpayroll.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace itpayroll.Services
 {
     public class GovernmentService
     {
-        public decimal ComputeSSS(decimal salary)
+        private readonly ApplicationDbContext _context;
+
+        public GovernmentService(ApplicationDbContext context)
         {
-            decimal min = 5000;
-            decimal max = 35000;
+            _context = context;
+        }
 
-            var msc = Math.Min(Math.Max(salary, min), max);
+        public async Task<decimal> ComputeSSS(decimal salary)
+        {
+            var bracket = await _context.SSSContributions
+                .Where(s => salary >= s.MinSalary && salary <= s.MaxSalary)
+                .FirstOrDefaultAsync();
 
-            return msc * 0.05m; // employee share
+            return bracket?.EmployeeShare ?? 0;
         }
 
         public decimal ComputePhilHealth(decimal salary)

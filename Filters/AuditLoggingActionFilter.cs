@@ -34,7 +34,8 @@ namespace itpayroll.Filters
                 Action = action,
                 Entity = controller,
                 IpAddress = ipAddress,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                LogType = GetLogType(action)
             };
 
             _context.AuditLogs.Add(auditLog);
@@ -49,6 +50,17 @@ namespace itpayroll.Filters
                 "PUT" => AuditAction.Update,
                 "DELETE" => AuditAction.Delete,
                 _ => AuditAction.Update
+            };
+        }
+
+        private LogType GetLogType(AuditAction action)
+        {
+            return action switch
+            {
+                AuditAction.Login => LogType.Security,
+                AuditAction.Logout => LogType.Security,
+                AuditAction.FailedLogin => LogType.Security,
+                _ => LogType.System
             };
         }
     }

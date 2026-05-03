@@ -30,31 +30,101 @@
             <span class="text">Dashboard</span>
         </a>
 
-        @if (User.IsInRole("SuperAdmin"))
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
         {
-            <a asp-controller="UserManagement" asp-action="Index" class="nav-link @(currentController == "UserManagement" ? "active" : "")">
-                <i class="fas fa-users"></i>
-                <span class="text">Users</span>
-            </a>
+            bool isUsersSection = currentController == "UserManagement";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isUsersSection ? "active" : "")" data-bs-toggle="collapse" href="#usersCollapse" role="button" aria-expanded="@(isUsersSection ? "true" : "false")">
+                    <i class="fas fa-users"></i>
+                    <span class="text">Users</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isUsersSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isUsersSection ? "show" : "")" id="usersCollapse">
+                    <a asp-controller="UserManagement" asp-action="Index" class="nav-link @(currentController == "UserManagement" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <span class="text">Manage Users</span>
+                    </a>
+                    <a asp-controller="UserManagement" asp-action="AuditLogs" class="nav-link @(currentController == "UserManagement" && ViewContext.RouteData.Values["action"]?.ToString() == "AuditLogs" ? "active" : "")">
+                        <span class="text">Audit Logs</span>
+                    </a>
+                </div>
+            </div>
         }
 
-        @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
         {
-            <a asp-controller="Employee" asp-action="Index" class="nav-link @(currentController == "Employee" ? "active" : "")">
-                <i class="fas fa-id-badge"></i>
-                <span class="text">Employees</span>
+            bool isAttendanceSection = currentController == "Attendance" || currentController == "Leave";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isAttendanceSection ? "active" : "")" data-bs-toggle="collapse" href="#attendanceCollapse" role="button" aria-expanded="@(isAttendanceSection ? "true" : "false")">
+                    <i class="fas fa-clock"></i>
+                    <span class="text">Attendance</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isAttendanceSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isAttendanceSection ? "show" : "")" id="attendanceCollapse">
+                    <a asp-controller="Attendance" asp-action="Index" class="nav-link @(currentController == "Attendance" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <span class="text">All Attendance</span>
+                    </a>
+                    <a asp-controller="Leave" asp-action="Index" class="nav-link @(currentController == "Leave" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <span class="text">Leave Requests</span>
+                    </a>
+                </div>
+            </div>
+
+            bool isOvertimeSection = currentController == "Overtime";
+            <a asp-controller="Overtime" asp-action="Index" class="nav-link @(isOvertimeSection ? "active" : "")">
+                <i class="fas fa-clock-o"></i>
+                <span class="text">Overtime</span>
             </a>
+
+            <a asp-controller="Payroll" asp-action="Index" class="nav-link @(currentController == "Payroll" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                <i class="fas fa-money-bill-wave"></i>
+                <span class="text">Payroll</span>
+            </a>
+
+            bool isReportsSection = currentController == "Reports";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isReportsSection ? "active" : "")" data-bs-toggle="collapse" href="#reportsCollapse" role="button" aria-expanded="@(isReportsSection ? "true" : "false")">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="text">Reports</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isReportsSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isReportsSection ? "show" : "")" id="reportsCollapse">
+                    <a asp-controller="Reports" asp-action="PayrollReport" class="nav-link @(currentController == "Reports" && ViewContext.RouteData.Values["action"]?.ToString() == "PayrollReport" ? "active" : "")">
+                        <span class="text">Payroll Report</span>
+                    </a>
+                    <a asp-controller="Reports" asp-action="AttendanceReport" class="nav-link @(currentController == "Reports" && ViewContext.RouteData.Values["action"]?.ToString() == "AttendanceReport" ? "active" : "")">
+                        <span class="text">Attendance Report</span>
+                    </a>
+                    <a asp-controller="Reports" asp-action="EmployeeReport" class="nav-link @(currentController == "Reports" && ViewContext.RouteData.Values["action"]?.ToString() == "EmployeeReport" ? "active" : "")">
+                        <span class="text">Employee Report</span>
+                    </a>
+                </div>
+            </div>
         }
 
-        <a asp-controller="Attendance" asp-action="Index" class="nav-link @(currentController == "Attendance" ? "active" : "")">
-            <i class="fas fa-clock"></i>
-            <span class="text">Attendance</span>
-        </a>
+        @if (User.IsInRole("Employee"))
+        {
+            bool isMyAttendanceSection = currentController == "Attendance" || currentController == "Leave";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isMyAttendanceSection ? "active" : "")" data-bs-toggle="collapse" href="#myAttendanceCollapse" role="button" aria-expanded="@(isMyAttendanceSection ? "true" : "false")">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="text">My Attendance</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isMyAttendanceSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isMyAttendanceSection ? "show" : "")" id="myAttendanceCollapse">
+                    <a asp-controller="Attendance" asp-action="MyAttendance" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyAttendance" ? "active" : "")">
+                        <span class="text">My Attendance</span>
+                    </a>
+                    <a asp-controller="Leave" asp-action="MyLeaves" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyLeaves" ? "active" : "")">
+                        <span class="text">My Leaves</span>
+                    </a>
+                </div>
+            </div>
 
-        <a asp-controller="Payroll" asp-action="Index" class="nav-link @(currentController == "Payroll" ? "active" : "")">
-            <i class="fas fa-money-bill-wave"></i>
-            <span class="text">Payroll</span>
-        </a>
+            <a asp-controller="Payroll" asp-action="MyPayslips" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyPayslips" ? "active" : "")">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span class="text">My Payslips</span>
+            </a>
+        }
     </div>
 
     <!-- Main Content -->
@@ -74,9 +144,22 @@
      
 
                 <!-- Notification -->
-                <div class="position-relative">
-                    <i class="fas fa-bell fs-5 text-muted"></i>
-                    <span class="notification-dot"></span>
+                <div class="position-relative dropdown">
+                    <button class="btn btn-link text-decoration-none position-relative" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell fs-5 text-muted"></i>
+                        <span id="notificationCount" class="position-absolute top--1 start--1 badge bg-danger rounded-pill d-none" style="font-size: 0.6rem;">0</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                        <li class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <strong>Notifications</strong>
+                            <button id="markAllRead" class="btn btn-sm btn-link text-decoration-none">Mark all read</button>
+                        </li>
+                        <div id="notificationList">
+                            <li class="px-3 py-4 text-center text-muted">
+                                <small>Loading...</small>
+                            </li>
+                        </div>
+                    </ul>
                 </div>
 
                 <!-- User -->
@@ -125,6 +208,7 @@
     </div>
 
     @await RenderSectionAsync("Scripts", required: false)
+    @Html.AntiForgeryToken()
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Wait for full page load
@@ -161,6 +245,7 @@
             if (sidebar) {
                 sidebar.classList.toggle('collapsed');
                 content.classList.toggle('expanded');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
             }
         }
 
@@ -174,12 +259,134 @@
                 sidebar.classList.add('collapsed');
                 content.classList.add('expanded');
             }
+
+            // Initialize accordion behavior
+            initAccordion();
+        }
+
+        function initAccordion() {
+            // Handle sidebar accordion toggles
+            const accordionToggles = document.querySelectorAll('.sidebar-accordion > a[data-bs-toggle="collapse"]');
+
+            accordionToggles.forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    // Remove rotated class from all chevrons
+                    document.querySelectorAll('.sidebar-chevron').forEach(chevron => {
+                        chevron.classList.remove('rotated');
+                    });
+
+                    // Add rotated class to clicked toggle's chevron
+                    const chevron = this.querySelector('.sidebar-chevron');
+                    if (chevron) {
+                        chevron.classList.toggle('rotated');
+                    }
+                });
+            });
+
+            // Set initial state for active accordion
+            const activeAccordion = document.querySelector('.sidebar-accordion .collapse.show');
+            if (activeAccordion) {
+                const parentToggle = activeAccordion.previousElementSibling;
+                if (parentToggle) {
+                    const chevron = parentToggle.querySelector('.sidebar-chevron');
+                    if (chevron) {
+                        chevron.classList.add('rotated');
+                    }
+                }
+            }
         }
 
       
         // Make toggleSidebar globally available
         window.toggleSidebar = toggleSidebar;
         window.toggleDarkMode = toggleDarkMode;
+
+        // Notification functions
+        function loadNotifications() {
+            fetch('@Url.Action("GetRecent", "Notifications")')
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('notificationList');
+                    const countBadge = document.getElementById('notificationCount');
+
+                    if (data.length === 0) {
+                        list.innerHTML = '<li class="px-3 py-4 text-center text-muted"><small>No notifications</small></li>';
+                        countBadge.classList.add('d-none');
+                        return;
+                    }
+
+                    let html = '';
+                    let unreadCount = 0;
+
+                    data.forEach(n => {
+                        if (!n.isRead) unreadCount++;
+                        html += `
+                            <li class="dropdown-item ${n.isRead ? '' : 'bg-light'}">
+                                <div class="d-flex justify-content-between">
+                                    <strong class="small">${n.title}</strong>
+                                    <small class="text-muted">${n.createdDate}</small>
+                                </div>
+                                <p class="small mb-1 text-muted">${n.message}</p>
+                                ${!n.isRead ? `<button class="btn btn-sm btn-link p-0" onclick="markRead(${n.notificationId})">Mark read</button>` : ''}
+                            </li>
+                        `;
+                    });
+
+                    list.innerHTML = html;
+
+                    if (unreadCount > 0) {
+                        countBadge.textContent = unreadCount;
+                        countBadge.classList.remove('d-none');
+                    } else {
+                        countBadge.classList.add('d-none');
+                    }
+                });
+        }
+
+        function markRead(id) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '@Url.Action("MarkAsRead", "Notifications")';
+
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = '__RequestVerificationToken';
+            token.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            form.appendChild(token);
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'id';
+            idInput.value = id;
+            form.appendChild(idInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNotifications();
+            setInterval(loadNotifications, 60000); // Refresh every minute
+
+            const markAllBtn = document.getElementById('markAllRead');
+            if (markAllBtn) {
+                markAllBtn.addEventListener('click', function() {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '@Url.Action("MarkAllAsRead", "Notifications")';
+
+                    const token = document.createElement('input');
+                    token.type = 'hidden';
+                    token.name = '__RequestVerificationToken';
+                    token.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                    form.appendChild(token);
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+        });
     </script>
 </body>
 </html>

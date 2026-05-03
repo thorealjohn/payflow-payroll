@@ -48,10 +48,27 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<AuditLoggingActionFilter>();
 });
 
+// Add authorization policies for role-based access
+builder.Services.AddAuthorization(options =>
+{
+    // SuperAdmin - Full system access
+    options.AddPolicy("RequireSuperAdmin", 
+        policy => policy.RequireRole("SuperAdmin"));
+    
+    // Admin and above - Can manage HR users, view reports
+    options.AddPolicy("RequireAdminOrAbove", 
+        policy => policy.RequireRole("SuperAdmin", "Admin"));
+    
+    // HR and above - Can manage employees, attendance, basic payroll
+    options.AddPolicy("RequireHROrAbove", 
+        policy => policy.RequireRole("SuperAdmin", "Admin", "HR"));
+});
+
 builder.Services.AddScoped<GovernmentService>();
 builder.Services.AddScoped<TaxService>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<PayrollService>();
+builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditService>();
 
@@ -63,7 +80,8 @@ using (var scope = app.Services.CreateScope())
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-    await SeedData.InitializeAsync(userManager, roleManager, builder.Configuration);
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await SeedData.InitializeAsync(userManager, roleManager, builder.Configuration, context);
 }
 
 // Configure the HTTP request pipeline.

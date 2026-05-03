@@ -1,0 +1,93 @@
+@model List<itpayroll.Models.LeaveRequest>
+
+@{
+    ViewData["Title"] = "Leave Requests";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Leave Requests</h4>
+        <small class="text-muted">Manage employee leave requests</small>
+    </div>
+</div>
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <a asp-action="Index" asp-route-status="@null" class="btn btn-sm @(ViewBag.SelectedStatus == null ? "btn-primary" : "btn-outline-primary")">All</a>
+            <a asp-action="Index" asp-route-status="Pending" class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Pending" ? "btn-warning" : "btn-outline-warning")">Pending</a>
+            <a asp-action="Index" asp-route-status="Approved" class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Approved" ? "btn-success" : "btn-outline-success")">Approved</a>
+            <a asp-action="Index" asp-route-status="Rejected" class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Rejected" ? "btn-danger" : "btn-outline-danger")">Rejected</a>
+        </div>
+        <form asp-action="Index" method="get" class="d-flex gap-2">
+            <input type="text" name="searchString" class="form-control" placeholder="Search by employee name..." value="@ViewBag.CurrentFilter" />
+            <button type="submit" class="btn btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter))
+            {
+                <a asp-action="Index" class="btn btn-secondary">Clear</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Employee</th>
+                    <th class="px-4">Leave Type</th>
+                    <th class="px-4">Start Date</th>
+                    <th class="px-4">End Date</th>
+                    <th class="px-4">Days</th>
+                    <th class="px-4">Status</th>
+                    <th class="text-end px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model)
+                {
+                    <tr>
+                        <td class="px-4">@l.Employee.User?.FirstName @l.Employee.User?.LastName</td>
+                        <td class="px-4">@l.LeaveType</td>
+                        <td class="px-4">@l.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">@l.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">@l.DaysRequested</td>
+                        <td class="px-4">
+                            @if (l.Status == itpayroll.Models.LeaveStatus.Pending)
+                            {
+                                <span class="badge bg-warning">Pending</span>
+                            }
+                            else if (l.Status == itpayroll.Models.LeaveStatus.Approved)
+                            {
+                                <span class="badge bg-success">Approved</span>
+                            }
+                            else if (l.Status == itpayroll.Models.LeaveStatus.Rejected)
+                            {
+                                <span class="badge bg-danger">Rejected</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Cancelled</span>
+                            }
+                        </td>
+                        <td class="text-end px-4">
+                            <a asp-action="Details" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-outline-info">View</a>
+                            @if (l.Status == itpayroll.Models.LeaveStatus.Pending)
+                            {
+                                <a asp-action="Approve" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-success">Approve</a>
+                                <a asp-action="Reject" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-danger">Reject</a>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No leave requests found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

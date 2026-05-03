@@ -23,15 +23,26 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var payrolls = await _context.Payrolls
+            var payrolls = _context.Payrolls
                 .Include(p => p.Employee)
                 .ThenInclude(e => e.User)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                payrolls = payrolls.Where(p =>
+                    p.Employee.User.FirstName.Contains(searchString) ||
+                    p.Employee.User.LastName.Contains(searchString) ||
+                    p.Employee.EmployeeNumber.Contains(searchString));
+            }
+
+            ViewBag.CurrentFilter = searchString;
+            var result = await payrolls
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
-
-            return View(payrolls);
+            return View(result);
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]

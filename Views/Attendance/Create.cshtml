@@ -45,6 +45,12 @@
                     <input asp-for="OvertimeHours" class="form-control" type="number" step="0.5" min="0" max="24" />
                     <span asp-validation-for="OvertimeHours" class="text-danger"></span>
                 </div>
+
+                <div class="col-md-4 mb-3">
+                    <label asp-for="DayType" class="form-label"></label>
+                    <select asp-for="DayType" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Models.DayType>()"></select>
+                    <span asp-validation-for="DayType" class="text-danger"></span>
+                </div>
             </div>
 
             <div class="mt-3">

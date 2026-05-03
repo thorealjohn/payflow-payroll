@@ -1,0 +1,38 @@
+@model itpayroll.Models.LeaveRequest
+
+@{
+    ViewData["Title"] = "Reject Leave Request";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Reject Leave Request</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>Employee:</strong> @Model.Employee.User?.FirstName @Model.Employee.User?.LastName<br />
+                        <strong>Leave Type:</strong> @Model.LeaveType<br />
+                        <strong>Dates:</strong> @Model.StartDate.ToString("MMM dd, yyyy") - @Model.EndDate.ToString("MMM dd, yyyy")
+                    </div>
+
+                    <form asp-action="Reject">
+                        <input type="hidden" asp-for="LeaveRequestId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Rejection Reason</label>
+                            <textarea name="rejectionReason" class="form-control" rows="3" required></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Details" asp-route-id="@Model.LeaveRequestId" class="btn btn-secondary">Back</a>
+                            <button type="submit" class="btn btn-danger">Reject Leave</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

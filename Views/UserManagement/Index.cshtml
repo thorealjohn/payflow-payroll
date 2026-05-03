@@ -13,10 +13,13 @@
         <h4 class="fw-bold mb-0">User Management</h4>
         <small class="text-muted">Manage system users and roles</small>
     </div>
-
-    <a asp-action="Create" class="btn btn-success">
-        + New User
-    </a>
+    <div class="d-flex gap-2">
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+        {
+            <a asp-action="Create" class="btn btn-success">+ New User</a>
+        }
+        <a asp-action="AuditLogs" class="btn btn-outline-info">Audit Logs</a>
+    </div>
 </div>
 
 <div class="card">
@@ -68,7 +71,7 @@
                             @if (canModify)
                             {
                                 <a asp-action="Edit" asp-route-id="@user.Id"
-                                   class="btn btn-sm btn-outline-primary">Edit</a>
+                                   class="btn btn-sm btn-outline-warning">Edit</a>
 
                                 <a asp-action="Details" asp-route-id="@user.Id"
                                    class="btn btn-sm btn-outline-info">View</a>

@@ -1,0 +1,61 @@
+@model List<itpayroll.Models.Employee>
+@using itpayroll.Models
+@{
+    ViewData["Title"] = "Employee Report";
+}
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold mb-0">Employee Report</h4>
+            <small class="text-muted">Export employee directory</small>
+        </div>
+        <div>
+            <a asp-action="ExportEmployeeExcel" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Employee #</th>
+                    <th class="px-4">Name</th>
+                    <th class="px-4">Email</th>
+                    <th class="px-4">Basic Salary</th>
+                    <th class="px-4">Shift</th>
+                    <th class="px-4">Hire Date</th>
+                    <th class="px-4">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    <tr>
+                        <td class="px-4">@e.EmployeeNumber</td>
+                        <td class="px-4">@e.User?.FirstName @e.User?.LastName</td>
+                        <td class="px-4">@e.User?.Email</td>
+                        <td class="px-4">₱@e.BasicSalary.ToString("N2")</td>
+                        <td class="px-4">@(e.Shift?.ShiftName ?? "N/A")</td>
+                        <td class="px-4">@e.HireDate.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">
+                            <span class="badge @(e.Status == EmploymentStatus.Active ? "bg-success" : "bg-danger")">
+                                @e.Status
+                            </span>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No employees found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

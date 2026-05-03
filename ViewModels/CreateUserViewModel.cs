@@ -47,7 +47,7 @@ namespace itpayroll.ViewModels
         private static readonly Dictionary<string, string[]> _allowedRoles = new()
         {
             { Roles.SuperAdmin, new[] { Roles.Admin } },
-            { Roles.Admin, new[] { Roles.HR } },
+            { Roles.Admin, new[] { Roles.HR, Roles.Employee } },
             { Roles.HR, new[] { Roles.Employee } }
         };
 

@@ -22,6 +22,14 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
+                    <label asp-for="ShiftId" class="form-label"></label>
+                    <select asp-for="ShiftId" class="form-select" asp-items="ViewBag.Shifts">
+                        <option value="">-- Select Shift --</option>
+                    </select>
+                    <span asp-validation-for="ShiftId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label asp-for="Status" class="form-label"></label>
                     <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Models.EmploymentStatus>()"></select>
                     <span asp-validation-for="Status" class="text-danger"></span>

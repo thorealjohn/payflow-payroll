@@ -1,0 +1,105 @@
+@model List<itpayroll.Models.Attendance>
+@using itpayroll.Models
+@{
+    ViewData["Title"] = "Attendance Report";
+}
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold mb-0">Attendance Report</h4>
+            <small class="text-muted">Filter and export attendance data</small>
+        </div>
+        <div>
+            <a asp-action="ExportAttendanceExcel" asp-route-dateFrom="@ViewBag.DateFrom" asp-route-dateTo="@ViewBag.DateTo" asp-route-employeeId="@ViewBag.SelectedEmployee" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-auto">
+        <input type="date" name="dateFrom" class="form-control" value="@ViewBag.DateFrom" placeholder="From Date" />
+    </div>
+    <div class="col-auto">
+        <input type="date" name="dateTo" class="form-control" value="@ViewBag.DateTo" placeholder="To Date" />
+    </div>
+    <div class="col-auto">
+        <select name="employeeId" class="form-select">
+            <option value="">All Employees</option>
+            @foreach (var emp in ViewBag.Employees as List<SelectListItem>)
+            {
+                <option value="@emp.Value" selected="@(ViewBag.SelectedEmployee?.ToString() == emp.Value)">@emp.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-action="AttendanceReport" class="btn btn-secondary">Clear</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Employee</th>
+                    <th class="px-4">Date</th>
+                    <th class="px-4">Time In</th>
+                    <th class="px-4">Time Out</th>
+                    <th class="px-4">Total Hours</th>
+                    <th class="px-4">Late (min)</th>
+                    <th class="px-4">Undertime (min)</th>
+                    <th class="px-4">Night Shift (hrs)</th>
+                    <th class="px-4">Day Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td class="px-4">@a.Employee?.EmployeeNumber - @a.Employee?.User?.FirstName @a.Employee?.User?.LastName</td>
+                        <td class="px-4">@a.Date.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">@a.TimeIn.ToString(@"hh\:mm")</td>
+                        <td class="px-4">@a.TimeOut.ToString(@"hh\:mm")</td>
+                        <td class="px-4">@a.TotalHours.ToString("N2")</td>
+                        <td class="px-4">
+                            @if (a.LateMinutes > 0)
+                            {
+                                <span class="badge bg-warning">@a.LateMinutes</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">0</span>
+                            }
+                        </td>
+                        <td class="px-4">
+                            @if (a.UndertimeMinutes > 0)
+                            {
+                                <span class="badge bg-danger">@a.UndertimeMinutes</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">0</span>
+                            }
+                        </td>
+                        <td class="px-4">@a.NightShiftHours.ToString("N2")</td>
+                        <td class="px-4">
+                            <span class="badge @(a.DayType == DayType.Regular ? "bg-secondary" : a.DayType == DayType.RestDay ? "bg-info" : a.DayType == DayType.Holiday ? "bg-warning" : "bg-danger")">
+                                @a.DayType
+                            </span>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">No attendance records found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

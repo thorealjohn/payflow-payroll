@@ -33,8 +33,20 @@ namespace itpayroll.Services
         private decimal ComputeBasic(decimal salary, double hours)
             => HourlyRate(salary) * (decimal)hours;
 
-        private decimal ComputeOT(decimal salary, double ot)
-            => HourlyRate(salary) * (decimal)ot * 1.25m;
+        private decimal ComputeOT(decimal salary, double ot, DayType dayType)
+        {
+            var multiplier = dayType switch
+            {
+                DayType.Regular => 1.25m,
+                DayType.RestDay or DayType.Holiday => 1.30m,
+                DayType.RestDayHoliday => 1.50m,
+                _ => 1.25m
+            };
+            return HourlyRate(salary) * (decimal)ot * multiplier;
+        }
+
+        private decimal ComputeNightShiftDifferential(decimal salary, double nightShiftHours)
+            => HourlyRate(salary) * (decimal)nightShiftHours * 0.10m;
 
         // =========================
         // MAIN PROCESS
@@ -51,17 +63,36 @@ namespace itpayroll.Services
             if (employee == null)
                 throw new Exception("Employee not found");
 
-            // 🔹 Get attendance
-            var (hours, ot) = await _attendance.GetHoursAsync(employeeId, start, end);
+            // 🔹 Get attendance records with details
+            var attendanceRecords = await _context.Attendances
+                .Where(a => a.EmployeeId == employeeId && a.Date >= start && a.Date <= end)
+                .ToListAsync();
+
+            // 🔹 Get approved overtime records
+            var approvedOvertimes = await _context.Overtimes
+                .Where(o => o.EmployeeId == employeeId && o.Date >= start && o.Date <= end && o.Status == OvertimeStatus.Approved)
+                .ToListAsync();
+
+            // 🔹 Aggregate totals
+            double totalHours = attendanceRecords.Sum(a => a.TotalHours);
+            double totalOT = approvedOvertimes.Sum(o => o.Hours); // Use approved overtime only
+            double totalNightShiftHours = attendanceRecords.Sum(a => a.NightShiftHours);
+
+            // 🔹 Calculate weighted overtime (simplified: use most common day type or Regular)
+            var mostCommonDayType = attendanceRecords
+                .GroupBy(a => a.DayType)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault()?.Key ?? DayType.Regular;
 
             // 🔹 Earnings
-            var basic = ComputeBasic(employee.BasicSalary, hours);
-            var overtime = ComputeOT(employee.BasicSalary, ot);
+            var basic = ComputeBasic(employee.BasicSalary, totalHours);
+            var overtime = ComputeOT(employee.BasicSalary, totalOT, mostCommonDayType);
+            var nightShiftDiff = ComputeNightShiftDifferential(employee.BasicSalary, totalNightShiftHours);
 
-            var gross = basic + overtime;
+            var gross = basic + overtime + nightShiftDiff;
 
             // 🔹 Government deductions
-            var sss = _gov.ComputeSSS(employee.BasicSalary);
+            var sss = await _gov.ComputeSSS(employee.BasicSalary);
             var phil = _gov.ComputePhilHealth(employee.BasicSalary);
             var pagibig = _gov.ComputePagIBIG(employee.BasicSalary);
 
@@ -90,10 +121,18 @@ namespace itpayroll.Services
             await _context.SaveChangesAsync();
 
             // 🔹 Save Earnings
-            _context.Earnings.AddRange(
+            var earnings = new List<Earning>
+            {
                 new Earning { PayrollId = payroll.PayrollId, Type = EarningType.BasicPay, Amount = basic },
                 new Earning { PayrollId = payroll.PayrollId, Type = EarningType.Overtime, Amount = overtime }
-            );
+            };
+
+            if (nightShiftDiff > 0)
+            {
+                earnings.Add(new Earning { PayrollId = payroll.PayrollId, Type = EarningType.NightShiftDifferential, Amount = nightShiftDiff });
+            }
+
+            _context.Earnings.AddRange(earnings);
 
             // 🔹 Save Deductions
             _context.Deductions.AddRange(

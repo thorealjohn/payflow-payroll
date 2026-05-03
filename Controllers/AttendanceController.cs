@@ -1,6 +1,7 @@
 using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
+using itpayroll.Services;
 using itpayroll.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +14,12 @@ namespace itpayroll.Controllers
     public class AttendanceController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly AttendanceService _attendanceService;
 
-        public AttendanceController(ApplicationDbContext context)
+        public AttendanceController(ApplicationDbContext context, AttendanceService attendanceService)
         {
             _context = context;
+            _attendanceService = attendanceService;
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
@@ -78,6 +81,11 @@ namespace itpayroll.Controllers
 
             var totalHours = (model.TimeOut - model.TimeIn).TotalHours;
 
+            // Get employee's shift to calculate late/undertime
+            var employee = await _context.Employees
+                .Include(e => e.Shift)
+                .FirstOrDefaultAsync(e => e.EmployeeId == model.EmployeeId);
+
             var attendance = new Attendance
             {
                 EmployeeId = model.EmployeeId,
@@ -88,6 +96,22 @@ namespace itpayroll.Controllers
                 OvertimeHours = model.OvertimeHours,
                 CreatedDate = DateTime.UtcNow
             };
+
+            // Calculate late and undertime if employee has a shift
+            if (employee?.Shift != null)
+            {
+                var (lateMinutes, undertimeMinutes) = _attendanceService.CalculateLateAndUndertime(
+                    model.TimeIn, model.TimeOut, employee.Shift, model.Date.Date);
+                attendance.LateMinutes = lateMinutes;
+                attendance.UndertimeMinutes = undertimeMinutes;
+            }
+
+            // Calculate night shift hours (10pm-6am)
+            attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
+                model.TimeIn, model.TimeOut, model.Date.Date);
+
+            // Set day type
+            attendance.DayType = model.DayType;
 
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
@@ -110,7 +134,8 @@ namespace itpayroll.Controllers
                 Date = attendance.Date,
                 TimeIn = attendance.TimeIn,
                 TimeOut = attendance.TimeOut,
-                OvertimeHours = attendance.OvertimeHours
+                OvertimeHours = attendance.OvertimeHours,
+                DayType = attendance.DayType
             };
 
             await PopulateEmployeeDropdown();
@@ -146,6 +171,26 @@ namespace itpayroll.Controllers
             attendance.TimeOut = model.TimeOut;
             attendance.TotalHours = (model.TimeOut - model.TimeIn).TotalHours;
             attendance.OvertimeHours = model.OvertimeHours;
+
+            // Recalculate late and undertime
+            var employee = await _context.Employees
+                .Include(e => e.Shift)
+                .FirstOrDefaultAsync(e => e.EmployeeId == attendance.EmployeeId);
+
+            if (employee?.Shift != null)
+            {
+                var (lateMinutes, undertimeMinutes) = _attendanceService.CalculateLateAndUndertime(
+                    model.TimeIn, model.TimeOut, employee.Shift, attendance.Date);
+                attendance.LateMinutes = lateMinutes;
+                attendance.UndertimeMinutes = undertimeMinutes;
+            }
+
+            // Recalculate night shift hours
+            attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
+                model.TimeIn, model.TimeOut, attendance.Date);
+
+            // Update day type
+            attendance.DayType = model.DayType;
 
             try
             {

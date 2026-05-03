@@ -12,7 +12,7 @@ using itpayroll.Services;
 
 namespace itpayroll.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "RequireAdminOrAbove")]
     public class UserManagementController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -341,8 +341,60 @@ namespace itpayroll.Controllers
 
             
             await _auditService.LogAsync(AuditAction.Delete, $"User: {user.Email}");
-            TempData["Success"] = "User deactivated successfully.";
             return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
+        public async Task<IActionResult> AuditLogs(string? logType = null, string? searchString = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+        {
+            var logs = _context.AuditLogs.AsQueryable();
+
+            // Filter by log type if specified
+            if (!string.IsNullOrEmpty(logType) && Enum.TryParse<LogType>(logType, out var type))
+            {
+                logs = logs.Where(l => l.LogType == type);
+            }
+
+            // Search by user email or entity
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                logs = logs.Where(l =>
+                    l.UserEmail.Contains(searchString) ||
+                    l.Entity.Contains(searchString) ||
+                    l.Action.ToString().Contains(searchString));
+            }
+
+            // Date range filter
+            if (dateFrom.HasValue)
+            {
+                logs = logs.Where(l => l.Timestamp >= dateFrom.Value.Date);
+            }
+
+            if (dateTo.HasValue)
+            {
+                logs = logs.Where(l => l.Timestamp <= dateTo.Value.Date.AddDays(1));
+            }
+
+            var model = await logs
+                .OrderByDescending(l => l.Timestamp)
+                .Take(500)
+                .Select(l => new AuditLogViewModel
+                {
+                    Id = l.Id,
+                    UserEmail = l.UserEmail,
+                    Action = l.Action,
+                    Entity = l.Entity,
+                    IpAddress = l.IpAddress,
+                    Timestamp = l.Timestamp,
+                    LogType = l.LogType
+                })
+                .ToListAsync();
+
+            ViewBag.SelectedLogType = logType;
+            ViewBag.CurrentFilter = searchString;
+            ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
+            ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
+            return View(model);
         }
     }
 }

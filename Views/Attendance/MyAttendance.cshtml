@@ -18,6 +18,8 @@
                     <th class="px-4">Time Out</th>
                     <th class="px-4">Total Hours</th>
                     <th class="px-4">OT Hours</th>
+                    <th class="px-4">Late (min)</th>
+                    <th class="px-4">Undertime (min)</th>
                 </tr>
             </thead>
             <tbody>
@@ -29,12 +31,32 @@
                         <td class="px-4">@a.TimeOut.ToString(@"hh\:mm")</td>
                         <td class="px-4">@a.TotalHours.ToString("N2")</td>
                         <td class="px-4">@a.OvertimeHours.ToString("N2")</td>
+                        <td class="px-4">
+                            @if (a.LateMinutes > 0)
+                            {
+                                <span class="badge bg-warning">@a.LateMinutes</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">0</span>
+                            }
+                        </td>
+                        <td class="px-4">
+                            @if (a.UndertimeMinutes > 0)
+                            {
+                                <span class="badge bg-danger">@a.UndertimeMinutes</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">0</span>
+                            }
+                        </td>
                     </tr>
                 }
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No attendance records found.</td>
+                        <td colspan="7" class="text-center text-muted py-4">No attendance records found.</td>
                     </tr>
                 }
             </tbody>

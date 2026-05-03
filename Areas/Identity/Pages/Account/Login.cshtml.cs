@@ -134,7 +134,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
                     var user = await _userManager.FindByEmailAsync(Input.Email);
                     if (user != null)
                     {
-                            await _auditService.LogAsync(AuditAction.Login, "Account");
+                                await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
                     }
 
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl != "/")
@@ -162,7 +162,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
 
                         if (dbUser != null)
                         {
-                            await _auditService.LogAsync(AuditAction.FailedLogin, "Account");
+                            await _auditService.LogAsync(AuditAction.FailedLogin, "Account", LogType.Security);
                         }
                     }
 

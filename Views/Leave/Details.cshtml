@@ -1,0 +1,87 @@
+@model itpayroll.Models.LeaveRequest
+
+@{
+    ViewData["Title"] = "Leave Request Details";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Leave Request Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Employee</dt>
+                        <dd class="col-sm-8">@Model.Employee.User?.FirstName @Model.Employee.User?.LastName</dd>
+
+                        <dt class="col-sm-4">Leave Type</dt>
+                        <dd class="col-sm-8">@Model.LeaveType</dd>
+
+                        <dt class="col-sm-4">Start Date</dt>
+                        <dd class="col-sm-8">@Model.StartDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-4">End Date</dt>
+                        <dd class="col-sm-8">@Model.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-4">Days Requested</dt>
+                        <dd class="col-sm-8">@Model.DaysRequested</dd>
+
+                        <dt class="col-sm-4">Reason</dt>
+                        <dd class="col-sm-8">@Model.Reason</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Status == itpayroll.Models.LeaveStatus.Pending)
+                            {
+                                <span class="badge bg-warning">Pending</span>
+                            }
+                            else if (Model.Status == itpayroll.Models.LeaveStatus.Approved)
+                            {
+                                <span class="badge bg-success">Approved</span>
+                            }
+                            else if (Model.Status == itpayroll.Models.LeaveStatus.Rejected)
+                            {
+                                <span class="badge bg-danger">Rejected</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Cancelled</span>
+                            }
+                        </dd>
+
+                        @if (Model.Status == itpayroll.Models.LeaveStatus.Approved || Model.Status == itpayroll.Models.LeaveStatus.Rejected)
+                        {
+                            <dt class="col-sm-4">Approved/Rejected By</dt>
+                            <dd class="col-sm-8">@Model.ApprovedBy?.FirstName @Model.ApprovedBy?.LastName</dd>
+
+                            <dt class="col-sm-4">Action Date</dt>
+                            <dd class="col-sm-8">@Model.ApprovedDate?.ToString("MMM dd, yyyy HH:mm")</dd>
+                        }
+
+                        @if (Model.Status == itpayroll.Models.LeaveStatus.Rejected)
+                        {
+                            <dt class="col-sm-4">Rejection Reason</dt>
+                            <dd class="col-sm-8">@Model.RejectionReason</dd>
+                        }
+
+                        <dt class="col-sm-4">Requested On</dt>
+                        <dd class="col-sm-8">@Model.CreatedDate.ToString("MMM dd, yyyy HH:mm")</dd>
+                    </dl>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                        @if (Model.Status == itpayroll.Models.LeaveStatus.Pending)
+                        {
+                            <div>
+                                <a asp-action="Approve" asp-route-id="@Model.LeaveRequestId" class="btn btn-success">Approve</a>
+                                <a asp-action="Reject" asp-route-id="@Model.LeaveRequestId" class="btn btn-danger">Reject</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

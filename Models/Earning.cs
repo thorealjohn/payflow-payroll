@@ -32,6 +32,7 @@ namespace itpayroll.Models
     {
         BasicPay,
         Overtime,
+        NightShiftDifferential,
         Bonus,
         Allowance
     }

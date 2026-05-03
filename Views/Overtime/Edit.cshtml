@@ -1,0 +1,71 @@
+@model itpayroll.ViewModels.OvertimeViewModel
+@using itpayroll.Models
+@{
+    ViewData["Title"] = "Edit Overtime";
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-0">Edit Overtime</h4>
+    <small class="text-muted">Update overtime request</small>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            <input type="hidden" asp-for="OvertimeId" />
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label class="form-label">Employee</label>
+                <select class="form-select" disabled asp-items="ViewBag.Employees">
+                    <option value="">-- Select Employee --</option>
+                </select>
+                <input type="hidden" asp-for="EmployeeId" />
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Date" class="form-label"></label>
+                    <input asp-for="Date" class="form-control" type="date" readonly />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Hours" class="form-label"></label>
+                    <input asp-for="Hours" class="form-control" type="number" step="0.5" min="0.5" max="24" />
+                    <span asp-validation-for="Hours" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label"></label>
+                <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Reason" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<OvertimeStatus>()"></select>
+                </div>
+
+                @if (Model.Status == OvertimeStatus.Rejected)
+                {
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="RejectionReason" class="form-label"></label>
+                        <textarea asp-for="RejectionReason" class="form-control" rows="2"></textarea>
+                        <span asp-validation-for="RejectionReason" class="text-danger"></span>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

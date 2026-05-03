@@ -22,7 +22,7 @@ namespace itpayroll.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task LogAsync(AuditAction action, string? entity = null)
+        public async Task LogAsync(AuditAction action, string? entity = null, LogType logType = LogType.System)
         {
             var user = await _userManager.GetUserAsync(_httpContextAccessor.HttpContext?.User);
 
@@ -33,7 +33,8 @@ namespace itpayroll.Services
                 Action = action,
                 Entity = entity,
                 IpAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString(),
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                LogType = logType
             };
 
             _context.AuditLogs.Add(audit);

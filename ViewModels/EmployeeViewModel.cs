@@ -34,5 +34,8 @@ namespace itpayroll.ViewModels
         [DataType(DataType.Date)]
         [Display(Name = "Termination Date")]
         public DateTime? TerminationDate { get; set; }
+
+        [Display(Name = "Shift")]
+        public int? ShiftId { get; set; }
     }
 }

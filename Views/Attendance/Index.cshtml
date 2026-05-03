@@ -8,7 +8,10 @@
         <h4 class="fw-bold mb-0">Attendance Records</h4>
         <small class="text-muted">Track employee attendance and working hours</small>
     </div>
-    <a asp-action="Create" class="btn btn-success">+ Log Attendance</a>
+    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
+    {
+        <a asp-action="Create" class="btn btn-success">+ Log Attendance</a>
+    }
 </div>
 
 <form method="get" class="row g-3 mb-4">
@@ -32,6 +35,10 @@
                     <th class="px-4">Time Out</th>
                     <th class="px-4">Total Hours</th>
                     <th class="px-4">OT Hours</th>
+                    <th class="px-4">Night Shift (hrs)</th>
+                    <th class="px-4">Day Type</th>
+                    <th class="px-4">Late (min)</th>
+                    <th class="px-4">Undertime (min)</th>
                     <th class="text-end px-4">Actions</th>
                 </tr>
             </thead>
@@ -45,8 +52,34 @@
                         <td class="px-4">@a.TimeOut.ToString(@"hh\:mm")</td>
                         <td class="px-4">@a.TotalHours.ToString("N2")</td>
                         <td class="px-4">@a.OvertimeHours.ToString("N2")</td>
+                        <td class="px-4">@a.NightShiftHours.ToString("N2")</td>
+                        <td class="px-4">
+                            <span class="badge @(a.DayType == itpayroll.Models.DayType.Regular ? "bg-secondary" : a.DayType == itpayroll.Models.DayType.RestDay ? "bg-info" : a.DayType == itpayroll.Models.DayType.Holiday ? "bg-warning" : "bg-danger")">
+                                @a.DayType
+                            </span>
+                        </td>
+                        <td class="px-4">
+                            @if (a.LateMinutes > 0)
+                            {
+                                <span class="badge bg-warning">@a.LateMinutes</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">0</span>
+                            }
+                        </td>
+                        <td class="px-4">
+                            @if (a.UndertimeMinutes > 0)
+                            {
+                                <span class="badge bg-danger">@a.UndertimeMinutes</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">0</span>
+                            }
+                        </td>
                         <td class="text-end px-4">
-                            <a asp-action="Edit" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-action="Edit" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-outline-warning">Edit</a>
                             <a asp-action="Delete" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-outline-danger">Delete</a>
                         </td>
                     </tr>
@@ -54,7 +87,7 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">No attendance records found.</td>
+                        <td colspan="11" class="text-center text-muted py-4">No attendance records found.</td>
                     </tr>
                 }
             </tbody>

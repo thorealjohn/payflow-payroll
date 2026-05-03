@@ -8,7 +8,20 @@
         <h4 class="fw-bold mb-0">Payroll Records</h4>
         <small class="text-muted">Manage employee payroll and compensation</small>
     </div>
-    <a asp-action="Process" class="btn btn-success">+ Process Payroll</a>
+    <div class="d-flex gap-2">
+        <form asp-action="Index" method="get" class="d-flex gap-2">
+            <input type="text" name="searchString" class="form-control" placeholder="Search by employee name/number..." value="@ViewBag.CurrentFilter" />
+            <button type="submit" class="btn btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter))
+            {
+                <a asp-action="Index" class="btn btn-secondary">Clear</a>
+            }
+        </form>
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+        {
+            <a asp-action="Process" class="btn btn-success">+ Process Payroll</a>
+        }
+    </div>
 </div>
 
 <div class="card">

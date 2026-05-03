@@ -1,0 +1,83 @@
+@model List<itpayroll.Models.Payroll>
+@using itpayroll.Models
+@{
+    ViewData["Title"] = "Payroll Report";
+}
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold mb-0">Payroll Report</h4>
+            <small class="text-muted">Filter and export payroll data</small>
+        </div>
+        <div>
+            <a asp-action="ExportPayrollExcel" asp-route-dateFrom="@ViewBag.DateFrom" asp-route-dateTo="@ViewBag.DateTo" asp-route-employeeId="@ViewBag.SelectedEmployee" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-auto">
+        <input type="date" name="dateFrom" class="form-control" value="@ViewBag.DateFrom" placeholder="From Date" />
+    </div>
+    <div class="col-auto">
+        <input type="date" name="dateTo" class="form-control" value="@ViewBag.DateTo" placeholder="To Date" />
+    </div>
+    <div class="col-auto">
+        <select name="employeeId" class="form-select">
+            <option value="">All Employees</option>
+            @foreach (var emp in ViewBag.Employees as List<SelectListItem>)
+            {
+                <option value="@emp.Value" selected="@(ViewBag.SelectedEmployee?.ToString() == emp.Value)">@emp.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-action="PayrollReport" class="btn btn-secondary">Clear</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Employee</th>
+                    <th class="px-4">Period Start</th>
+                    <th class="px-4">Period End</th>
+                    <th class="px-4">Gross Pay</th>
+                    <th class="px-4">Deductions</th>
+                    <th class="px-4">Net Pay</th>
+                    <th class="px-4">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td class="px-4">@p.Employee?.EmployeeNumber - @p.Employee?.User?.FirstName @p.Employee?.User?.LastName</td>
+                        <td class="px-4">@p.PeriodStart.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">@p.PeriodEnd.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">₱@p.GrossPay.ToString("N2")</td>
+                        <td class="px-4">₱@p.TotalDeductions.ToString("N2")</td>
+                        <td class="px-4">₱@p.NetPay.ToString("N2")</td>
+                        <td class="px-4">
+                            <span class="badge @(p.Status == PayrollStatus.Released ? "bg-success" : "bg-primary")">
+                                @p.Status
+                            </span>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No payroll records found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

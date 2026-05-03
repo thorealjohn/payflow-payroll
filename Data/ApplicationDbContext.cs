@@ -17,6 +17,11 @@ namespace itpayroll.Data
         public DbSet<Deduction> Deductions { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<SSSContribution> SSSContributions { get; set; }
+        public DbSet<Shift> Shifts { get; set; }
+        public DbSet<LeaveRequest> LeaveRequests { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Overtime> Overtimes { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             // AuditLog index (for performance)
@@ -77,29 +82,74 @@ namespace itpayroll.Data
                 .HasForeignKey(e => e.PayrollId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<Employee>()
-            .Property(e => e.BasicSalary)
-            .HasPrecision(18, 2);
+                builder.Entity<Employee>()
+                    .Property(e => e.BasicSalary)
+                    .HasPrecision(12, 2);
 
-            builder.Entity<Payroll>()
-                .Property(p => p.GrossPay)
-                .HasPrecision(18, 2);
+                builder.Entity<Payroll>()
+                    .Property(p => p.GrossPay)
+                    .HasPrecision(12, 2);
 
-            builder.Entity<Payroll>()
-                .Property(p => p.NetPay)
-                .HasPrecision(18, 2);
+                builder.Entity<Payroll>()
+                    .Property(p => p.NetPay)
+                    .HasPrecision(12, 2);
 
-            builder.Entity<Payroll>()
-                .Property(p => p.TotalDeductions)
-                .HasPrecision(18, 2);
+                builder.Entity<Payroll>()
+                    .Property(p => p.TotalDeductions)
+                    .HasPrecision(12, 2);
 
-            builder.Entity<Earning>()
-                .Property(e => e.Amount)
-                .HasPrecision(18, 2);
+                builder.Entity<Earning>()
+                    .Property(e => e.Amount)
+                    .HasPrecision(12, 2);
 
-            builder.Entity<Deduction>()
-                .Property(d => d.Amount)
-                .HasPrecision(18, 2);
+                builder.Entity<Deduction>()
+                    .Property(d => d.Amount)
+                    .HasPrecision(12, 2);
+
+                builder.Entity<SSSContribution>(entity =>
+                {
+                    entity.Property(e => e.MinSalary).HasPrecision(12, 2);
+                    entity.Property(e => e.MaxSalary).HasPrecision(12, 2);
+                    entity.Property(e => e.EmployeeShare).HasPrecision(12, 2);
+                    entity.Property(e => e.EmployerShare).HasPrecision(12, 2);
+                });
+
+                // Shift configuration
+                builder.Entity<Shift>()
+                    .HasIndex(s => s.ShiftName)
+                    .IsUnique();
+
+                // Employee-Shift relationship
+                builder.Entity<Employee>()
+                    .HasOne(e => e.Shift)
+                    .WithMany()
+                    .HasForeignKey(e => e.ShiftId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // LeaveRequest configuration
+                builder.Entity<LeaveRequest>()
+                    .HasIndex(l => new { l.EmployeeId, l.StartDate, l.EndDate })
+                    .IsUnique();
+
+                builder.Entity<LeaveRequest>()
+                    .HasOne(l => l.Employee)
+                    .WithMany()
+                    .HasForeignKey(l => l.EmployeeId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                builder.Entity<LeaveRequest>()
+                    .HasOne(l => l.ApprovedBy)
+                    .WithMany()
+                    .HasForeignKey(l => l.ApprovedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Notification configuration
+                builder.Entity<Notification>()
+                    .HasOne(n => n.User)
+                    .WithMany()
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
         }
 
     }

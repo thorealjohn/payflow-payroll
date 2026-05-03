@@ -41,7 +41,8 @@ namespace itpayroll.Areas.Identity.Pages.Account
                     Action = AuditAction.Logout,
                     Entity = "Account",
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = DateTime.UtcNow,
+                    LogType = LogType.Security
                 });
                 await _context.SaveChangesAsync();
             }

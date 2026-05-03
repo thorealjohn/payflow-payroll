@@ -1,0 +1,114 @@
+@model itpayroll.Models.Overtime
+@{
+    ViewData["Title"] = "Overtime Details";
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-0">Overtime Details</h4>
+    <small class="text-muted">View overtime request details</small>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Overtime Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Employee:</strong></td>
+                        <td>@Model.Employee?.User?.FirstName @Model.Employee?.User?.LastName</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Employee Number:</strong></td>
+                        <td>@Model.Employee?.EmployeeNumber</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Date:</strong></td>
+                        <td>@Model.Date.ToString("MMM dd, yyyy")</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hours:</strong></td>
+                        <td>@Model.Hours.ToString("N2")</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reason:</strong></td>
+                        <td>@(string.IsNullOrEmpty(Model.Reason) ? "-" : Model.Reason)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td>
+                            <span class="badge @(Model.Status == itpayroll.Models.OvertimeStatus.Pending ? "bg-warning" : Model.Status == itpayroll.Models.OvertimeStatus.Approved ? "bg-success" : "bg-danger")">
+                                @Model.Status
+                            </span>
+                        </td>
+                    </tr>
+                    @if (Model.Status == itpayroll.Models.OvertimeStatus.Approved)
+                    {
+                        <tr>
+                            <td><strong>Approved By:</strong></td>
+                            <td>@Model.ApprovedBy</td>
+                        </tr>
+                    }
+                    @if (Model.Status == itpayroll.Models.OvertimeStatus.Rejected)
+                    {
+                        <tr>
+                            <td><strong>Rejection Reason:</strong></td>
+                            <td>@Model.RejectionReason</td>
+                        </tr>
+                    }
+                    <tr>
+                        <td><strong>Created:</strong></td>
+                        <td>@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    @if (Model.Status == itpayroll.Models.OvertimeStatus.Pending)
+    {
+        <a asp-action="Edit" asp-route-id="@Model.OvertimeId" class="btn btn-warning">Edit</a>
+        <form asp-action="Approve" asp-route-id="@Model.OvertimeId" method="post" class="d-inline">
+            <button type="submit" class="btn btn-success" onclick="return confirm('Approve this overtime?')">Approve</button>
+        </form>
+        <button type="button" class="btn btn-danger" onclick="showRejectModal(@Model.OvertimeId)">Reject</button>
+    }
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="rejectForm" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Overtime</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason</label>
+                        <textarea name="rejectionReason" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showRejectModal(id) {
+            document.getElementById('rejectForm').action = '/Overtime/Reject/' + id;
+            new bootstrap.Modal(document.getElementById('rejectModal')).show();
+        }
+    </script>
+}

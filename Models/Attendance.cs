@@ -3,6 +3,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace itpayroll.Models
 {
+    public enum DayType
+    {
+        Regular,
+        RestDay,
+        Holiday,
+        RestDayHoliday
+    }
+
     public class Attendance : IValidatableObject
     {
         [Key]
@@ -28,6 +36,17 @@ namespace itpayroll.Models
 
         [Range(0, 24)]
         public double OvertimeHours { get; set; }
+
+        [Range(0, 1440)]
+        public int LateMinutes { get; set; }
+
+        [Range(0, 1440)]
+        public int UndertimeMinutes { get; set; }
+
+        [Range(0, 24)]
+        public double NightShiftHours { get; set; }
+
+        public DayType DayType { get; set; } = DayType.Regular;
 
         // AUDIT
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;

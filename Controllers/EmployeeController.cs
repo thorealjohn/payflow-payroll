@@ -19,20 +19,52 @@ namespace itpayroll.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var employees = await _context.Employees
+            var employees = _context.Employees
                 .Include(e => e.User)
+                .Include(e => e.Shift)
+                .Where(e => !e.User.IsDeleted)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                employees = employees.Where(e =>
+                    e.EmployeeNumber.Contains(searchString) ||
+                    e.User.FirstName.Contains(searchString) ||
+                    e.User.LastName.Contains(searchString) ||
+                    (e.Shift != null && e.Shift.ShiftName.Contains(searchString)));
+            }
+
+            ViewBag.CurrentFilter = searchString;
+            var result = await employees
                 .OrderByDescending(e => e.CreatedDate)
                 .ToListAsync();
-
-            return View(employees);
+            return View(result);
         }
 
         public async Task<IActionResult> Create()
         {
             await PopulateUserDropdown();
+            await PopulateShiftDropdown();
             return View();
+        }
+
+        private async Task PopulateShiftDropdown(object? selectedShift = null)
+        {
+            var selectedShiftValue = selectedShift?.ToString() ?? "";
+            var shifts = await _context.Shifts
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.ShiftName)
+                .Select(s => new SelectListItem
+                {
+                    Value = s.ShiftId.ToString(),
+                    Text = s.ShiftName,
+                    Selected = s.ShiftId.ToString() == selectedShiftValue
+                })
+                .ToListAsync();
+
+            ViewBag.Shifts = shifts;
         }
 
         [HttpPost]
@@ -42,6 +74,7 @@ namespace itpayroll.Controllers
             if (!ModelState.IsValid)
             {
                 await PopulateUserDropdown();
+                await PopulateShiftDropdown(model.ShiftId);
                 return View(model);
             }
 
@@ -84,13 +117,15 @@ namespace itpayroll.Controllers
                 EmployeeId = employee.EmployeeId,
                 UserId = employee.UserId,
                 EmployeeNumber = employee.EmployeeNumber,
-                Status = employee.Status,
                 BasicSalary = employee.BasicSalary,
+                Status = employee.Status,
                 HireDate = employee.HireDate,
-                TerminationDate = employee.TerminationDate
+                TerminationDate = employee.TerminationDate,
+                ShiftId = employee.ShiftId
             };
 
             await PopulateUserDropdown();
+            await PopulateShiftDropdown(employee.ShiftId);
             return View(model);
         }
 
@@ -104,6 +139,7 @@ namespace itpayroll.Controllers
             if (!ModelState.IsValid)
             {
                 await PopulateUserDropdown();
+                await PopulateShiftDropdown(model.ShiftId);
                 return View(model);
             }
 

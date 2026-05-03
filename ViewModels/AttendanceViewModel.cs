@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using itpayroll.Models;
 
 namespace itpayroll.ViewModels
 {
@@ -27,5 +28,8 @@ namespace itpayroll.ViewModels
         [Display(Name = "Overtime Hours")]
         [Range(0, 24)]
         public double OvertimeHours { get; set; }
+
+        [Display(Name = "Day Type")]
+        public DayType DayType { get; set; } = DayType.Regular;
     }
 }

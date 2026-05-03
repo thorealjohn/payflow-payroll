@@ -24,6 +24,14 @@ namespace itpayroll.Models
         public string? IpAddress { get; set; }
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        public LogType LogType { get; set; } = LogType.System;
+    }
+
+    public enum LogType
+    {
+        Security,
+        System
     }
 
     public enum AuditAction
@@ -37,3 +45,6 @@ namespace itpayroll.Models
         FailedLogin
     }
 }
+
+// Add LogType property to AuditLog class
+// I'll add it in the next edit

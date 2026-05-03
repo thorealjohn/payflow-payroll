@@ -38,21 +38,30 @@
                                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Employees</a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" asp-controller="Employee" asp-action="Index">All Employees</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Employee" asp-action="Create">Add Employee</a></li>
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                                        {
+                                            <li><a class="dropdown-item" asp-controller="Employee" asp-action="Create">Add Employee</a></li>
+                                        }
                                     </ul>
                                 </li>
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Attendance</a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Index">All Records</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Create">Log Attendance</a></li>
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
+                                        {
+                                            <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Create">Log Attendance</a></li>
+                                        }
                                     </ul>
                                 </li>
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Payroll</a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" asp-controller="Payroll" asp-action="Index">Payroll Records</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Payroll" asp-action="Process">Process Payroll</a></li>
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                                        {
+                                            <li><a class="dropdown-item" asp-controller="Payroll" asp-action="Process">Process Payroll</a></li>
+                                        }
                                     </ul>
                                 </li>
                             }

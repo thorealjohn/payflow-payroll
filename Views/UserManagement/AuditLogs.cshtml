@@ -1,0 +1,97 @@
+﻿@model List<AuditLogViewModel>
+@using itpayroll.Models
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold mb-0">Audit Logs</h4>
+            <small class="text-muted">System and security activity logs</small>
+        </div>
+        <div class="d-flex gap-2">
+            <form asp-action="AuditLogs" method="get" class="d-flex gap-2">
+                <input type="text" name="searchString" class="form-control" placeholder="Search by user, entity, action..." value="@ViewBag.CurrentFilter" />
+                <input type="date" name="dateFrom" class="form-control" value="@ViewBag.DateFrom" placeholder="From Date" />
+                <input type="date" name="dateTo" class="form-control" value="@ViewBag.DateTo" placeholder="To Date" />
+                <button type="submit" class="btn btn-primary">Search</button>
+                @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter) || !string.IsNullOrEmpty(ViewBag.DateFrom) || !string.IsNullOrEmpty(ViewBag.DateTo))
+                {
+                    <a asp-action="AuditLogs" class="btn btn-secondary">Clear</a>
+                }
+            </form>
+            <div class="btn-group" role="group">
+                <a asp-action="AuditLogs" class="btn btn-sm @(string.IsNullOrEmpty(ViewBag.SelectedLogType) ? "btn-primary" : "btn-outline-primary")">All</a>
+                <a asp-action="AuditLogs" asp-route-logType="System" class="btn btn-sm @(ViewBag.SelectedLogType == "System" ? "btn-primary" : "btn-outline-primary")">System</a>
+                <a asp-action="AuditLogs" asp-route-logType="Security" class="btn btn-sm @(ViewBag.SelectedLogType == "Security" ? "btn-primary" : "btn-outline-primary")">Security</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Timestamp</th>
+                    <th class="px-4">User</th>
+                    <th class="px-4">Action</th>
+                    <th class="px-4">Entity</th>
+                    <th class="px-4">Log Type</th>
+                    <th class="px-4">IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Model)
+                {
+                    <tr>
+                        <td class="px-4">@log.Timestamp.ToString("MMM dd, yyyy HH:mm")</td>
+                        <td class="px-4">@(log.UserEmail ?? "SYSTEM")</td>
+                        <td class="px-4">
+                            <span class="badge @GetBadgeClass(log.Action)">@log.Action</span>
+                        </td>
+                        <td class="px-4">@log.Entity</td>
+                        <td class="px-4">
+                            <span class="badge @(log.LogType == LogType.Security ? "bg-warning" : "bg-info")">@log.LogType</span>
+                        </td>
+                        <td class="px-4">@log.IpAddress</td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No audit logs found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@functions {
+    string GetBadgeClass(AuditAction action)
+    {
+        return action switch
+        {
+            AuditAction.Login => "bg-success",
+            AuditAction.Logout => "bg-secondary",
+            AuditAction.Create => "bg-primary",
+            AuditAction.Update => "bg-warning",
+            AuditAction.Delete => "bg-danger",
+            AuditAction.PayrollProcess => "bg-info",
+            AuditAction.FailedLogin => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        // Ensure toggle works even if loaded via AJAX (if needed later)
+        document.addEventListener("DOMContentLoaded", function() {
+            initTheme();
+        });
+    </script>
+}

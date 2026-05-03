@@ -33,6 +33,12 @@ namespace itpayroll.Models
 
         public DateTime? TerminationDate { get; set; }
 
+        [Display(Name = "Shift")]
+        public int? ShiftId { get; set; }
+
+        [ForeignKey(nameof(ShiftId))]
+        public Shift? Shift { get; set; }
+
         // AUDIT
         [Required]
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
