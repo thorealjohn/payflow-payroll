@@ -1,6 +1,7 @@
 using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
+using itpayroll.Utilities;
 using itpayroll.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,24 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(string searchString, DateTime? dateFrom, DateTime? dateTo)
+        public async Task<IActionResult> Index(string searchString, string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var overtimes = _context.Overtimes
                 .Include(o => o.Employee)
                 .ThenInclude(e => e.User)
                 .AsQueryable();
+
+            if (from.HasValue)
+            {
+                overtimes = overtimes.Where(o => o.Date >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                overtimes = overtimes.Where(o => o.Date <= to.Value);
+            }
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -35,19 +48,10 @@ namespace itpayroll.Controllers
                     o.Employee.EmployeeNumber.Contains(searchString));
             }
 
-            if (dateFrom.HasValue)
-            {
-                overtimes = overtimes.Where(o => o.Date >= dateFrom.Value.Date);
-            }
-
-            if (dateTo.HasValue)
-            {
-                overtimes = overtimes.Where(o => o.Date <= dateTo.Value.Date);
-            }
-
             ViewBag.CurrentFilter = searchString;
-            ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
-            ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
 
             var result = await overtimes
                 .OrderByDescending(o => o.Date)

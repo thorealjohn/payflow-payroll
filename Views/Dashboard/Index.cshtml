@@ -2,7 +2,10 @@
     Layout = "_DashboardLayout";
 }
 
-<h2>Dashboard</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Dashboard</h2>
+    @await Html.PartialAsync("_PeriodSelector")
+</div>
 
 @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
 {

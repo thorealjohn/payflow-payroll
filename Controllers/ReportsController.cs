@@ -1,5 +1,6 @@
 using itpayroll.Data;
 using itpayroll.Models;
+using itpayroll.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,24 +24,29 @@ namespace itpayroll.Controllers
             return View();
         }
 
-        public async Task<IActionResult> PayrollReport(DateTime? dateFrom, DateTime? dateTo, int? employeeId)
+        public async Task<IActionResult> PayrollReport(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var query = _context.Payrolls
                 .Include(p => p.Employee)
                 .ThenInclude(e => e.User)
                 .AsQueryable();
 
-            if (dateFrom.HasValue)
-                query = query.Where(p => p.PeriodStart >= dateFrom.Value);
-            if (dateTo.HasValue)
-                query = query.Where(p => p.PeriodEnd <= dateTo.Value);
-            if (employeeId.HasValue)
-                query = query.Where(p => p.EmployeeId == employeeId.Value);
+            if (from.HasValue)
+            {
+                query = query.Where(p => p.PeriodStart >= from.Value);
+            }
+            if (to.HasValue)
+            {
+                query = query.Where(p => p.PeriodEnd <= to.Value);
+            }
 
             var payrolls = await query.OrderByDescending(p => p.PeriodStart).ToListAsync();
 
-            ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
-            ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
             ViewBag.Employees = await _context.Employees
                 .Include(e => e.User)
                 .Where(e => e.Status == EmploymentStatus.Active)
@@ -53,19 +59,19 @@ namespace itpayroll.Controllers
             return View(payrolls);
         }
 
-        public async Task<IActionResult> ExportPayrollExcel(DateTime? dateFrom, DateTime? dateTo, int? employeeId)
+        public async Task<IActionResult> ExportPayrollExcel(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var query = _context.Payrolls
                 .Include(p => p.Employee)
                 .ThenInclude(e => e.User)
                 .AsQueryable();
 
-            if (dateFrom.HasValue)
-                query = query.Where(p => p.PeriodStart >= dateFrom.Value);
-            if (dateTo.HasValue)
-                query = query.Where(p => p.PeriodEnd <= dateTo.Value);
-            if (employeeId.HasValue)
-                query = query.Where(p => p.EmployeeId == employeeId.Value);
+            if (from.HasValue)
+                query = query.Where(p => p.PeriodStart >= from.Value);
+            if (to.HasValue)
+                query = query.Where(p => p.PeriodEnd <= to.Value);
 
             var payrolls = await query.OrderByDescending(p => p.PeriodStart).ToListAsync();
 

@@ -20,7 +20,7 @@
 <body>
 
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div id="sidebar" class="sidebar">
         <div class="text-center mb-4">
             <span class="logo-full fw-bold fs-4">PayFlow</span>
             <span class="logo-mini fw-bold">PF</span>
@@ -69,9 +69,8 @@
                 </div>
             </div>
 
-            bool isOvertimeSection = currentController == "Overtime";
-            <a asp-controller="Overtime" asp-action="Index" class="nav-link @(isOvertimeSection ? "active" : "")">
-                <i class="fas fa-clock-o"></i>
+            <a asp-controller="Overtime" asp-action="Index" class="nav-link @(currentController == "Overtime" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                <i class="fas fa-business-time"></i>
                 <span class="text">Overtime</span>
             </a>
 
@@ -134,7 +133,7 @@
 
             <!-- LEFT -->
             <div class="d-flex align-items-center gap-3">
-                <span class="toggle-btn" onclick="toggleSidebar()">☰</span>
+                <span id="sidebarToggle" class="toggle-btn">☰</span>
                 <strong class="fs-5">@ViewData["Title"]</strong>
             </div>
 
@@ -205,7 +204,7 @@
         <div class="mt-4">
             @RenderBody()
         </div>
-    </div>
+    
 
     @await RenderSectionAsync("Scripts", required: false)
     @Html.AntiForgeryToken()
@@ -238,15 +237,19 @@
             if (toggle) toggle.checked = isDark;
         }
 
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
+                function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
             const content = document.querySelector('.content');
 
-            if (sidebar) {
-                sidebar.classList.toggle('collapsed');
-                content.classList.toggle('expanded');
-                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            if (!sidebar || !content) {
+                console.error("Sidebar or content not found");
+                return;
             }
+
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         }
 
         function initSidebar() {
@@ -280,20 +283,27 @@
                     if (chevron) {
                         chevron.classList.toggle('rotated');
                     }
+
+                    // Save accordion state to localStorage
+                    const targetId = this.getAttribute('href').substring(1);
+                    const isOpen = document.getElementById(targetId).classList.contains('show');
+                    localStorage.setItem('accordion_' + targetId, isOpen);
                 });
             });
 
-            // Set initial state for active accordion
-            const activeAccordion = document.querySelector('.sidebar-accordion .collapse.show');
-            if (activeAccordion) {
-                const parentToggle = activeAccordion.previousElementSibling;
-                if (parentToggle) {
-                    const chevron = parentToggle.querySelector('.sidebar-chevron');
-                    if (chevron) {
-                        chevron.classList.add('rotated');
-                    }
+            // Restore accordion state from localStorage
+            accordionToggles.forEach(toggle => {
+                const targetId = toggle.getAttribute('href').substring(1);
+                const isOpen = localStorage.getItem('accordion_' + targetId) === 'true';
+                const target = document.getElementById(targetId);
+                const chevron = toggle.querySelector('.sidebar-chevron');
+
+                if (isOpen && target && !target.classList.contains('show')) {
+                    // Re-open the accordion
+                    new bootstrap.Collapse(target, { toggle: false }).show();
+                    if (chevron) chevron.classList.add('rotated');
                 }
-            }
+            });
         }
 
       
@@ -386,6 +396,23 @@
                     form.submit();
                 });
             }
+                    // 🔥 SIDEBAR TOGGLE FIX
+        const toggleBtn = document.getElementById('sidebarToggle');
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function () {
+                const sidebar = document.getElementById('sidebar');
+                const content = document.querySelector('.content');
+
+                if (!sidebar || !content) {
+                    console.error("Sidebar or content not found");
+                    return;
+                }
+
+                sidebar.classList.toggle('collapsed');
+                content.classList.toggle('expanded');
+            });
+        }
         });
     </script>
 </body>

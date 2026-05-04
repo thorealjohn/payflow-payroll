@@ -12,6 +12,8 @@
     <a asp-action="Create" class="btn btn-success">+ Request Leave</a>
 </div>
 
+@await Html.PartialAsync("_PeriodSelector")
+
 <div class="card">
     <div class="card-body p-0">
         <table class="table align-middle mb-0">

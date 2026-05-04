@@ -2,37 +2,60 @@
 @using itpayroll.Models
 @{
     ViewData["Title"] = "Audit Logs";
+
+    int current = ViewBag.CurrentPage ?? 1;
+    int total = ViewBag.TotalPages ?? 1;
+
+    int start = Math.Max(1, current - 2);
+    int end = Math.Min(total, current + 2);
 }
 
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center">
+
+    <!-- 🔹 HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h4 class="fw-bold mb-0">Audit Logs</h4>
+            <h4 class="fw-bold mb-1">Audit Logs</h4>
             <small class="text-muted">System and security activity logs</small>
         </div>
-        <div class="d-flex gap-2">
-            <form asp-action="AuditLogs" method="get" class="d-flex gap-2">
-                <input type="text" name="searchString" class="form-control" placeholder="Search by user, entity, action..." value="@ViewBag.CurrentFilter" />
-                <input type="date" name="dateFrom" class="form-control" value="@ViewBag.DateFrom" placeholder="From Date" />
-                <input type="date" name="dateTo" class="form-control" value="@ViewBag.DateTo" placeholder="To Date" />
-                <button type="submit" class="btn btn-primary">Search</button>
-                @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter) || !string.IsNullOrEmpty(ViewBag.DateFrom) || !string.IsNullOrEmpty(ViewBag.DateTo))
-                {
-                    <a asp-action="AuditLogs" class="btn btn-secondary">Clear</a>
-                }
-            </form>
-            <div class="btn-group" role="group">
-                <a asp-action="AuditLogs" class="btn btn-sm @(string.IsNullOrEmpty(ViewBag.SelectedLogType) ? "btn-primary" : "btn-outline-primary")">All</a>
-                <a asp-action="AuditLogs" asp-route-logType="System" class="btn btn-sm @(ViewBag.SelectedLogType == "System" ? "btn-primary" : "btn-outline-primary")">System</a>
-                <a asp-action="AuditLogs" asp-route-logType="Security" class="btn btn-sm @(ViewBag.SelectedLogType == "Security" ? "btn-primary" : "btn-outline-primary")">Security</a>
-            </div>
+
+        <div class="btn-group">
+            <a asp-action="AuditLogs"
+               class="btn btn-sm @(string.IsNullOrEmpty(ViewBag.SelectedLogType) ? "btn-primary" : "btn-outline-primary")">
+                All
+            </a>
+            <a asp-action="AuditLogs" asp-route-logType="System"
+               class="btn btn-sm @(ViewBag.SelectedLogType == "System" ? "btn-primary" : "btn-outline-primary")">
+                System
+            </a>
+            <a asp-action="AuditLogs" asp-route-logType="Security"
+               class="btn btn-sm @(ViewBag.SelectedLogType == "Security" ? "btn-primary" : "btn-outline-primary")">
+                Security
+            </a>
         </div>
     </div>
+
+    <!-- 🔹 SEARCH + FILTER -->
+    <form asp-action="AuditLogs" method="get"
+          class="d-flex flex-wrap gap-2 align-items-center">
+
+        <input type="text"
+               name="searchString"
+               class="form-control"
+               style="max-width: 300px;"
+               placeholder="Search logs..."
+               value="@ViewBag.CurrentFilter" />
+
+        @await Html.PartialAsync("_PeriodSelector")
+
+    </form>
 </div>
 
+<!-- 🔥 TABLE -->
 <div class="card">
     <div class="card-body p-0">
-        <table class="table align-middle mb-0">
+
+        <table class="table align-middle mb-0 table-hover">
             <thead>
                 <tr>
                     <th class="px-4">Timestamp</th>
@@ -43,30 +66,107 @@
                     <th class="px-4">IP Address</th>
                 </tr>
             </thead>
+
             <tbody>
                 @foreach (var log in Model)
                 {
                     <tr>
                         <td class="px-4">@log.Timestamp.ToString("MMM dd, yyyy HH:mm")</td>
                         <td class="px-4">@(log.UserEmail ?? "SYSTEM")</td>
+
                         <td class="px-4">
-                            <span class="badge @GetBadgeClass(log.Action)">@log.Action</span>
+                            <span class="badge @GetBadgeClass(log.Action)">
+                                @log.Action
+                            </span>
                         </td>
+
                         <td class="px-4">@log.Entity</td>
+
                         <td class="px-4">
-                            <span class="badge @(log.LogType == LogType.Security ? "bg-warning" : "bg-info")">@log.LogType</span>
+                            <span class="badge @(log.LogType == LogType.Security ? "bg-warning" : "bg-info")">
+                                @log.LogType
+                            </span>
                         </td>
+
                         <td class="px-4">@log.IpAddress</td>
                     </tr>
                 }
+
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No audit logs found.</td>
+                        <td colspan="6">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1"></i>
+                                <p class="mt-2 mb-0">No audit logs found</p>
+                                <small>Try adjusting your filters</small>
+                            </div>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        <!-- 🔥 SMART PAGINATION -->
+        <div class="d-flex justify-content-between align-items-center px-4 py-3 border-top">
+
+            <small class="text-muted">
+                Page @current of @total
+            </small>
+
+            <div class="d-flex gap-1 flex-wrap">
+
+                <!-- Previous -->
+                <a asp-action="AuditLogs"
+                   asp-route-page="@(current - 1)"
+                   class="btn btn-sm btn-outline-primary @(current == 1 ? "disabled" : "")">
+                    Previous
+                </a>
+
+                <!-- First -->
+                @if (start > 1)
+                {
+                    <a asp-action="AuditLogs" asp-route-page="1"
+                       class="btn btn-sm btn-outline-primary">1</a>
+
+                    @if (start > 2)
+                    {
+                        <span class="px-2">...</span>
+                    }
+                }
+
+                <!-- Middle -->
+                @for (int i = start; i <= end; i++)
+                {
+                    <a asp-action="AuditLogs"
+                       asp-route-page="@i"
+                       class="btn btn-sm @(i == current ? "btn-primary" : "btn-outline-primary")">
+                        @i
+                    </a>
+                }
+
+                <!-- Last -->
+                @if (end < total)
+                {
+                    @if (end < total - 1)
+                    {
+                        <span class="px-2">...</span>
+                    }
+
+                    <a asp-action="AuditLogs" asp-route-page="@total"
+                       class="btn btn-sm btn-outline-primary">@total</a>
+                }
+
+                <!-- Next -->
+                <a asp-action="AuditLogs"
+                   asp-route-page="@(current + 1)"
+                   class="btn btn-sm btn-outline-primary @(current == total ? "disabled" : "")">
+                    Next
+                </a>
+
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -85,13 +185,4 @@
             _ => "bg-secondary"
         };
     }
-}
-
-@section Scripts {
-    <script>
-        // Ensure toggle works even if loaded via AJAX (if needed later)
-        document.addEventListener("DOMContentLoaded", function() {
-            initTheme();
-        });
-    </script>
 }

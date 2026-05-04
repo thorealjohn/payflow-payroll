@@ -49,4 +49,23 @@ namespace itpayroll.Models
 
         public DateTime? ModifiedDate { get; set; }
     }
+
+    public enum LeaveStatus
+    {
+        Pending,
+        Approved,
+        Rejected,
+        Cancelled
+    }
+
+    public enum LeaveType
+    {
+        SickLeave,
+        VacationLeave,
+        EmergencyLeave,
+        MaternityLeave,
+        PaternityLeave,
+        BereavementLeave,
+        UnpaidLeave
+    }
 }

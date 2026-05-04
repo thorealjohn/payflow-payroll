@@ -2,6 +2,7 @@
 using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
+using itpayroll.Utilities;
 using itpayroll.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -41,9 +42,45 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? searchString, string? role, string? status, int? page)
         {
-            var users = await _userManager.Users.ToListAsync();
+            var query = _userManager.Users.AsQueryable();
+
+            // 🔍 Search
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(u =>
+                    u.FirstName.Contains(searchString) ||
+                    u.LastName.Contains(searchString) ||
+                    u.Email.Contains(searchString));
+            }
+
+            // 🎯 Role filter
+            if (!string.IsNullOrEmpty(role))
+            {
+                var usersInRole = await _userManager.GetUsersInRoleAsync(role);
+                var userIds = usersInRole.Select(u => u.Id);
+                query = query.Where(u => userIds.Contains(u.Id));
+            }
+
+            // 📌 Status filter
+            if (!string.IsNullOrEmpty(status))
+            {
+                bool isActive = status == "active";
+                query = query.Where(u => u.IsActive == isActive);
+            }
+
+            int pageSize = 10;
+            int pageNumber = page ?? 1;
+
+            // 🔥 FIX HERE
+            int totalUsers = await query.CountAsync();
+
+            var users = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             var userRoles = new Dictionary<string, string>();
 
             foreach (var user in users)
@@ -54,6 +91,11 @@ namespace itpayroll.Controllers
 
             ViewBag.UserRoles = userRoles;
             ViewBag.CurrentUserRole = GetCurrentUserRole();
+            ViewBag.CurrentPage = pageNumber;
+
+            // 🔥 FIXED LINE
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalUsers / pageSize);
+
             return View(users);
         }
 
@@ -345,9 +387,29 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public async Task<IActionResult> AuditLogs(string? logType = null, string? searchString = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+        public async Task<IActionResult> AuditLogs(
+    string? logType = null,
+    string? searchString = null,
+    string period = "ThisMonth",
+    string customDateFrom = null,
+    string customDateTo = null,
+    int page = 1
+)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var logs = _context.AuditLogs.AsQueryable();
+
+            // Date range filter
+            if (from.HasValue)
+            {
+                logs = logs.Where(l => l.Timestamp >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                logs = logs.Where(l => l.Timestamp <= to.Value.AddDays(1));
+            }
 
             // Filter by log type if specified
             if (!string.IsNullOrEmpty(logType) && Enum.TryParse<LogType>(logType, out var type))
@@ -356,28 +418,35 @@ namespace itpayroll.Controllers
             }
 
             // Search by user email or entity
+            searchString = searchString?.Trim();
+
             if (!string.IsNullOrEmpty(searchString))
             {
-                logs = logs.Where(l =>
-                    l.UserEmail.Contains(searchString) ||
-                    l.Entity.Contains(searchString) ||
-                    l.Action.ToString().Contains(searchString));
+                var lowerSearch = searchString.ToLower();
+
+                if (Enum.TryParse<AuditAction>(searchString, true, out var actionEnum))
+                {
+                    logs = logs.Where(l =>
+                        (l.UserEmail != null && l.UserEmail.ToLower().Contains(lowerSearch)) ||
+                        (l.Entity != null && l.Entity.ToLower().Contains(lowerSearch)) ||
+                        l.Action == actionEnum);
+                }
+                else
+                {
+                    logs = logs.Where(l =>
+                        (l.UserEmail != null && l.UserEmail.ToLower().Contains(lowerSearch)) ||
+                        (l.Entity != null && l.Entity.ToLower().Contains(lowerSearch)));
+                }
             }
 
-            // Date range filter
-            if (dateFrom.HasValue)
-            {
-                logs = logs.Where(l => l.Timestamp >= dateFrom.Value.Date);
-            }
+            int pageSize = 10;
 
-            if (dateTo.HasValue)
-            {
-                logs = logs.Where(l => l.Timestamp <= dateTo.Value.Date.AddDays(1));
-            }
+            int totalLogs = await logs.CountAsync();
 
             var model = await logs
                 .OrderByDescending(l => l.Timestamp)
-                .Take(500)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(l => new AuditLogViewModel
                 {
                     Id = l.Id,
@@ -392,8 +461,11 @@ namespace itpayroll.Controllers
 
             ViewBag.SelectedLogType = logType;
             ViewBag.CurrentFilter = searchString;
-            ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
-            ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalLogs / pageSize);
             return View(model);
         }
     }

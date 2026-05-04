@@ -1,0 +1,43 @@
+@{
+    var period = ViewBag.Period as string ?? "ThisMonth";
+    var customFrom = ViewBag.CustomDateFrom as string;
+    var customTo = ViewBag.CustomDateTo as string;
+}
+
+<form method="get" class="row g-3 align-items-center mb-4">
+    <div class="col-auto">
+        <select id="periodSelector" name="period" class="form-select" onchange="handlePeriodChange()">
+            <option value="Today" selected="@(period == "Today")">Today</option>
+            <option value="ThisWeek" selected="@(period == "ThisWeek")">This Week</option>
+            <option value="ThisMonth" selected="@(period == "ThisMonth")">This Month</option>
+            <option value="LastMonth" selected="@(period == "LastMonth")">Last Month</option>
+            <option value="ThisYear" selected="@(period == "ThisYear")">This Year</option>
+            <option value="Custom" selected="@(period == "Custom")">Custom Range</option>
+        </select>
+    </div>
+    <div id="customRange" style="display: @(period == "Custom" ? "flex" : "none"); gap: 12px;" class="col-auto">
+        <input type="date" name="customDateFrom" value="@customFrom" class="form-control" placeholder="From" />
+        <input type="date" name="customDateTo" value="@customTo" class="form-control" placeholder="To" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <a href="@Context.Request.Path" class="btn btn-secondary">Clear</a>
+    </div>
+</form>
+
+<script>
+    function handlePeriodChange() {
+        const period = document.getElementById('periodSelector').value;
+        const customRange = document.getElementById('customRange');
+        if (period === 'Custom') {
+            customRange.style.display = 'flex';
+        } else {
+            customRange.style.display = 'none';
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        handlePeriodChange();
+    });
+</script>

@@ -1,32 +1,38 @@
-@model List<itpayroll.Models.Attendance>
+﻿@model List<itpayroll.Models.Attendance>
 @{
     ViewData["Title"] = "Attendance Records";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0">Attendance Records</h4>
+        <h4 class="fw-bold mb-1">Attendance Records</h4>
         <small class="text-muted">Track employee attendance and working hours</small>
     </div>
+
     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
     {
-        <a asp-action="Create" class="btn btn-success">+ Log Attendance</a>
+        <a asp-action="Create" class="btn btn-success">Log Attendance</a>
     }
 </div>
 
-<form method="get" class="row g-3 mb-4">
-    <div class="col-auto">
-        <input type="date" name="date" value="@(ViewBag.SelectedDate?.ToString("yyyy-MM-dd"))" class="form-control" />
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-primary">Filter</button>
-        <a asp-action="Index" class="btn btn-secondary">Clear</a>
-    </div>
+<!-- FILTER BAR -->
+<form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
+
+    <input type="text"
+           name="search"
+           class="form-control w-auto"
+           placeholder="Search employee..."
+           style="min-width: 250px;" />
+
+    @await Html.PartialAsync("_PeriodSelector") <!-- MUST NOT contain <form> -->
+
+
 </form>
 
+<!-- TABLE -->
 <div class="card">
     <div class="card-body p-0">
-        <table class="table align-middle mb-0">
+        <table class="table align-middle mb-0 table-hover">
             <thead>
                 <tr>
                     <th class="px-4">Employee</th>
@@ -42,9 +48,18 @@
                     <th class="text-end px-4">Actions</th>
                 </tr>
             </thead>
+
             <tbody>
                 @foreach (var a in Model)
                 {
+                    var badgeClass = a.DayType switch
+                    {
+                        itpayroll.Models.DayType.Regular => "bg-secondary",
+                        itpayroll.Models.DayType.RestDay => "bg-info",
+                        itpayroll.Models.DayType.Holiday => "bg-warning",
+                        _ => "bg-danger"
+                    };
+
                     <tr>
                         <td class="px-4">@a.Employee.User?.FirstName @a.Employee.User?.LastName</td>
                         <td class="px-4">@a.Date.ToString("MMM dd, yyyy")</td>
@@ -53,11 +68,11 @@
                         <td class="px-4">@a.TotalHours.ToString("N2")</td>
                         <td class="px-4">@a.OvertimeHours.ToString("N2")</td>
                         <td class="px-4">@a.NightShiftHours.ToString("N2")</td>
+
                         <td class="px-4">
-                            <span class="badge @(a.DayType == itpayroll.Models.DayType.Regular ? "bg-secondary" : a.DayType == itpayroll.Models.DayType.RestDay ? "bg-info" : a.DayType == itpayroll.Models.DayType.Holiday ? "bg-warning" : "bg-danger")">
-                                @a.DayType
-                            </span>
+                            <span class="badge @badgeClass">@a.DayType</span>
                         </td>
+
                         <td class="px-4">
                             @if (a.LateMinutes > 0)
                             {
@@ -68,6 +83,7 @@
                                 <span class="text-success">0</span>
                             }
                         </td>
+
                         <td class="px-4">
                             @if (a.UndertimeMinutes > 0)
                             {
@@ -78,16 +94,33 @@
                                 <span class="text-success">0</span>
                             }
                         </td>
+
                         <td class="text-end px-4">
-                            <a asp-action="Edit" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-outline-warning">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@a.AttendanceId" class="btn btn-sm btn-outline-danger">Delete</a>
+                            <a asp-action="Edit"
+                               asp-route-id="@a.AttendanceId"
+                               class="btn btn-sm btn-outline-primary">
+                                Edit
+                            </a>
+
+                            <a asp-action="Delete"
+                               asp-route-id="@a.AttendanceId"
+                               class="btn btn-sm btn-outline-danger">
+                                Delete
+                            </a>
                         </td>
                     </tr>
                 }
+
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="11" class="text-center text-muted py-4">No attendance records found.</td>
+                        <td colspan="11">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1"></i>
+                                <p class="mt-2 mb-0">No attendance records yet</p>
+                                <small>Try adjusting your filters or add new attendance</small>
+                            </div>
+                        </td>
                     </tr>
                 }
             </tbody>

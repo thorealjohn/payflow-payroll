@@ -2,6 +2,7 @@ using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
 using itpayroll.Services;
+using itpayroll.Utilities;
 using itpayroll.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,16 +24,23 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(DateTime? date)
+        public async Task<IActionResult> Index(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var query = _context.Attendances
                 .Include(a => a.Employee)
                 .ThenInclude(e => e.User)
                 .AsQueryable();
 
-            if (date.HasValue)
+            if (from.HasValue)
             {
-                query = query.Where(a => a.Date == date.Value.Date);
+                query = query.Where(a => a.Date >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                query = query.Where(a => a.Date <= to.Value);
             }
 
             var attendances = await query
@@ -40,7 +48,9 @@ namespace itpayroll.Controllers
                 .ThenBy(a => a.TimeIn)
                 .ToListAsync();
 
-            ViewBag.SelectedDate = date?.Date;
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
             return View(attendances);
         }
 
@@ -238,7 +248,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyAttendance()
+        public async Task<IActionResult> MyAttendance(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
             var employee = await _context.Employees
                 .FirstOrDefaultAsync(e => e.UserId == User.Identity.Name);
@@ -249,11 +259,28 @@ namespace itpayroll.Controllers
                 return View(new List<Attendance>());
             }
 
-            var attendances = await _context.Attendances
-                .Where(a => a.EmployeeId == employee.EmployeeId)
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
+            var query = _context.Attendances
+                .Where(a => a.EmployeeId == employee.EmployeeId);
+
+            if (from.HasValue)
+            {
+                query = query.Where(a => a.Date >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                query = query.Where(a => a.Date <= to.Value);
+            }
+
+            var attendances = await query
                 .OrderByDescending(a => a.Date)
-                .Take(50)
                 .ToListAsync();
+
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
 
             return View(attendances);
         }

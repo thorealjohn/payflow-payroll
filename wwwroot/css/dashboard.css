@@ -135,8 +135,16 @@ body {
 }
 
     .sidebar.collapsed {
-        width: 70px;
+        width: 70px !important;
+        background: red !important;
     }
+        .sidebar.collapsed a {
+            justify-content: center;
+        }
+
+        .sidebar.collapsed i {
+            margin: 0;
+        }
 
     .sidebar a {
         display: flex;
@@ -660,5 +668,6 @@ body, .card, .topbar, .sidebar, .content {
 
 /* Mobile toggle button */
 .toggle-btn {
-    display: none;
+    display: block;
+    cursor: pointer;
 }

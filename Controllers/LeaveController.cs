@@ -2,6 +2,7 @@ using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
 using itpayroll.Services;
+using itpayroll.Utilities;
 using itpayroll.ViewModels;
 using itpayroll.Areas.Identity.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -26,13 +27,25 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(LeaveStatus? status, string? searchString = null)
+        public async Task<IActionResult> Index(LeaveStatus? status, string? searchString = null, string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var query = _context.LeaveRequests
                 .Include(l => l.Employee)
                 .ThenInclude(e => e.User)
                 .Include(l => l.ApprovedBy)
                 .AsQueryable();
+
+            if (from.HasValue)
+            {
+                query = query.Where(l => l.StartDate >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                query = query.Where(l => l.EndDate <= to.Value);
+            }
 
             if (status.HasValue)
             {
@@ -48,6 +61,10 @@ namespace itpayroll.Controllers
             }
 
             ViewBag.CurrentFilter = searchString;
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
+
             var leaveRequests = await query
                 .OrderByDescending(l => l.CreatedDate)
                 .ToListAsync();
@@ -57,23 +74,34 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyLeaves()
+        public async Task<IActionResult> MyLeaves(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
             var user = await _userManager.GetUserAsync(User);
             var userId = user?.Id;
-            var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.UserId == userId);
 
-            if (employee == null)
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
+            var query = _context.LeaveRequests
+                .Include(l => l.LeaveType)
+                .Include(l => l.ApprovedBy)
+                .Where(l => l.Employee.UserId == userId)
+                .AsQueryable();
+
+            if (from.HasValue)
             {
-                TempData["Error"] = "Employee profile not found.";
-                return View(new List<LeaveRequest>());
+                query = query.Where(l => l.StartDate >= from.Value);
             }
 
-            var leaves = await _context.LeaveRequests
-                .Where(l => l.EmployeeId == employee.EmployeeId)
-                .OrderByDescending(l => l.CreatedDate)
-                .ToListAsync();
+            if (to.HasValue)
+            {
+                query = query.Where(l => l.EndDate <= to.Value);
+            }
+
+            var leaves = await query.OrderByDescending(l => l.CreatedDate).ToListAsync();
+
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
 
             return View(leaves);
         }

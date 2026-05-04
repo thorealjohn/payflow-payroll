@@ -33,6 +33,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPost(string returnUrl = null)
         {
             var userId = _userManager.GetUserId(User);
+
             if (!string.IsNullOrEmpty(userId))
             {
                 _context.AuditLogs.Add(new AuditLog
@@ -44,18 +45,15 @@ namespace itpayroll.Areas.Identity.Pages.Account
                     Timestamp = DateTime.UtcNow,
                     LogType = LogType.Security
                 });
+
                 await _context.SaveChangesAsync();
             }
 
             await _signInManager.SignOutAsync();
             _logger.LogInformation("User logged out.");
 
-            if (returnUrl != null)
-            {
-                return LocalRedirect(returnUrl);
-            }
-
-            return RedirectToPage();
+            // 🔥 FIX: NEVER stay on logout page
+            return Redirect("~/Identity/Account/Login");
         }
     }
 }

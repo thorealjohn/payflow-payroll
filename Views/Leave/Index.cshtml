@@ -1,33 +1,68 @@
-@model List<itpayroll.Models.LeaveRequest>
+﻿@model List<itpayroll.Models.LeaveRequest>
 
 @{
     ViewData["Title"] = "Leave Requests";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-0">Leave Requests</h4>
-        <small class="text-muted">Manage employee leave requests</small>
-    </div>
-</div>
-
 <div class="mb-4">
+
+    <!-- 🔹 HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex gap-2">
-            <a asp-action="Index" asp-route-status="@null" class="btn btn-sm @(ViewBag.SelectedStatus == null ? "btn-primary" : "btn-outline-primary")">All</a>
-            <a asp-action="Index" asp-route-status="Pending" class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Pending" ? "btn-warning" : "btn-outline-warning")">Pending</a>
-            <a asp-action="Index" asp-route-status="Approved" class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Approved" ? "btn-success" : "btn-outline-success")">Approved</a>
-            <a asp-action="Index" asp-route-status="Rejected" class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Rejected" ? "btn-danger" : "btn-outline-danger")">Rejected</a>
+        <div>
+            <h4 class="fw-bold mb-1">Leave Requests</h4>
+            <small class="text-muted">Manage employee leave requests</small>
         </div>
-        <form asp-action="Index" method="get" class="d-flex gap-2">
-            <input type="text" name="searchString" class="form-control" placeholder="Search by employee name..." value="@ViewBag.CurrentFilter" />
-            <button type="submit" class="btn btn-primary">Search</button>
-            @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter))
-            {
-                <a asp-action="Index" class="btn btn-secondary">Clear</a>
-            }
-        </form>
+
+        <!-- 🔥 STATUS FILTER (RIGHT SIDE like Audit Logs) -->
+        <div class="btn-group">
+            <a asp-action="Index"
+               asp-route-status="@null"
+               class="btn btn-sm @(ViewBag.SelectedStatus == null ? "btn-primary" : "btn-outline-primary")">
+                All
+            </a>
+
+            <a asp-action="Index"
+               asp-route-status="Pending"
+               class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Pending" ? "btn-warning" : "btn-outline-warning")">
+                Pending
+            </a>
+
+            <a asp-action="Index"
+               asp-route-status="Approved"
+               class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Approved" ? "btn-success" : "btn-outline-success")">
+                Approved
+            </a>
+
+            <a asp-action="Index"
+               asp-route-status="Rejected"
+               class="btn btn-sm @(ViewBag.SelectedStatus?.ToString() == "Rejected" ? "btn-danger" : "btn-outline-danger")">
+                Rejected
+            </a>
+        </div>
     </div>
+
+    <!-- 🔹 SEARCH + PERIOD (CLEAN ROW) -->
+    <form asp-action="Index" method="get"
+          class="d-flex flex-wrap gap-2 align-items-center">
+
+        <input type="text"
+               name="searchString"
+               class="form-control"
+               style="max-width: 300px;"
+               placeholder="Search by employee name..."
+               value="@ViewBag.CurrentFilter" />
+
+        @await Html.PartialAsync("_PeriodSelector")
+
+        @if (!string.IsNullOrEmpty(ViewBag.CurrentFilter) ||
+                !string.IsNullOrEmpty(ViewBag.CustomDateFrom) ||
+                !string.IsNullOrEmpty(ViewBag.CustomDateTo))
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        }
+
+    </form>
+
 </div>
 
 <div class="card">

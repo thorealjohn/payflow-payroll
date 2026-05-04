@@ -1,6 +1,7 @@
 ﻿using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
+using itpayroll.Utilities;
 using itpayroll.ViewModels;
 using itpayroll.Areas.Identity.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -22,16 +23,28 @@ namespace itpayroll.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
             var isHrOrAdmin = User.IsInRole(Roles.SuperAdmin) || User.IsInRole(Roles.Admin) || User.IsInRole(Roles.HR);
+
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
 
             // Analytics data for HR/Admin
             if (isHrOrAdmin)
             {
                 // Monthly payroll totals for chart
-                var monthlyPayrollRaw = await _context.Payrolls
-                    .Where(p => p.CreatedAt >= DateTime.UtcNow.AddMonths(-6))
+                var monthlyPayrollQuery = _context.Payrolls.AsQueryable();
+
+                if (from.HasValue)
+                    monthlyPayrollQuery = monthlyPayrollQuery.Where(p => p.PeriodStart >= from.Value);
+                if (to.HasValue)
+                    monthlyPayrollQuery = monthlyPayrollQuery.Where(p => p.PeriodEnd <= to.Value);
+
+                var monthlyPayrollRaw = await monthlyPayrollQuery
                     .GroupBy(p => new { p.CreatedAt.Year, p.CreatedAt.Month })
                     .Select(g => new
                     {
@@ -52,8 +65,14 @@ namespace itpayroll.Controllers
                     .ToList();
 
                 // Attendance trends
-                var attendanceTrend = await _context.Attendances
-                    .Where(a => a.Date >= DateTime.UtcNow.AddDays(-30))
+                var attendanceQuery = _context.Attendances.AsQueryable();
+
+                if (from.HasValue)
+                    attendanceQuery = attendanceQuery.Where(a => a.Date >= from.Value);
+                if (to.HasValue)
+                    attendanceQuery = attendanceQuery.Where(a => a.Date <= to.Value);
+
+                var attendanceTrend = await attendanceQuery
                     .GroupBy(a => a.Date)
                     .Select(g => new
                     {
@@ -64,8 +83,14 @@ namespace itpayroll.Controllers
                     .ToListAsync();
 
                 // Leave statistics
-                var leaveStats = await _context.LeaveRequests
-                    .Where(l => l.CreatedDate >= DateTime.UtcNow.AddMonths(-3))
+                var leaveQuery = _context.LeaveRequests.AsQueryable();
+
+                if (from.HasValue)
+                    leaveQuery = leaveQuery.Where(l => l.StartDate >= from.Value);
+                if (to.HasValue)
+                    leaveQuery = leaveQuery.Where(l => l.EndDate <= to.Value);
+
+                var leaveStats = await leaveQuery
                     .GroupBy(l => l.Status)
                     .Select(g => new
                     {
@@ -82,10 +107,24 @@ namespace itpayroll.Controllers
             if (isHrOrAdmin)
             {
                 var totalEmployees = await _context.Employees.CountAsync(e => e.Status == Models.EmploymentStatus.Active);
-                var totalPayrolls = await _context.Payrolls.CountAsync();
-                var todayAttendance = await _context.Attendances.CountAsync(a => a.Date == DateTime.Today);
-                var totalPayrollAmount = await _context.Payrolls.SumAsync(p => p.NetPay);
-                var pendingPayrolls = await _context.Payrolls.CountAsync(p => p.Status == Models.PayrollStatus.Processed);
+
+                var payrollQuery = _context.Payrolls.AsQueryable();
+                if (from.HasValue)
+                    payrollQuery = payrollQuery.Where(p => p.PeriodStart >= from.Value);
+                if (to.HasValue)
+                    payrollQuery = payrollQuery.Where(p => p.PeriodEnd <= to.Value);
+
+                var totalPayrolls = await payrollQuery.CountAsync();
+                var totalPayrollAmount = await payrollQuery.SumAsync(p => p.NetPay);
+
+                var attendanceQuery = _context.Attendances.AsQueryable();
+                if (from.HasValue)
+                    attendanceQuery = attendanceQuery.Where(a => a.Date >= from.Value);
+                if (to.HasValue)
+                    attendanceQuery = attendanceQuery.Where(a => a.Date <= to.Value);
+
+                var todayAttendance = await attendanceQuery.CountAsync(a => a.Date == DateTime.Today);
+                var pendingPayrolls = await payrollQuery.CountAsync(p => p.Status == Models.PayrollStatus.Processed);
 
                 ViewBag.TotalEmployees = totalEmployees;
                 ViewBag.TotalPayrolls = totalPayrolls;
@@ -93,14 +132,14 @@ namespace itpayroll.Controllers
                 ViewBag.TotalPayrollAmount = totalPayrollAmount;
                 ViewBag.PendingPayrolls = pendingPayrolls;
 
-                var recentPayrolls = await _context.Payrolls
+                var recentPayrolls = await payrollQuery
                     .Include(p => p.Employee)
                     .ThenInclude(e => e.User)
                     .OrderByDescending(p => p.CreatedAt)
                     .Take(5)
                     .ToListAsync();
 
-                var recentAttendances = await _context.Attendances
+                var recentAttendances = await attendanceQuery
                     .Include(a => a.Employee)
                     .ThenInclude(e => e.User)
                     .OrderByDescending(a => a.Date)
@@ -118,8 +157,16 @@ namespace itpayroll.Controllers
 
                 if (employee != null)
                 {
-                    var myPayrolls = await _context.Payrolls
+                    var myPayrollsQuery = _context.Payrolls
                         .Where(p => p.EmployeeId == employee.EmployeeId)
+                        .AsQueryable();
+
+                    if (from.HasValue)
+                        myPayrollsQuery = myPayrollsQuery.Where(p => p.PeriodStart >= from.Value);
+                    if (to.HasValue)
+                        myPayrollsQuery = myPayrollsQuery.Where(p => p.PeriodEnd <= to.Value);
+
+                    var myPayrolls = await myPayrollsQuery
                         .OrderByDescending(p => p.CreatedAt)
                         .Take(5)
                         .ToListAsync();
