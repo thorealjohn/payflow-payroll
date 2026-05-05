@@ -5,7 +5,7 @@
 namespace itpayroll.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class midupdate : Migration
+    public partial class Midupdate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

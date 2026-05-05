@@ -136,7 +136,7 @@ body {
 
     .sidebar.collapsed {
         width: 70px !important;
-        background: red !important;
+        background: linear-gradient(180deg, #14532d, #052e16) !important;
     }
         .sidebar.collapsed a {
             justify-content: center;

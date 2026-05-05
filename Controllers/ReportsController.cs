@@ -24,7 +24,7 @@ namespace itpayroll.Controllers
             return View();
         }
 
-        public async Task<IActionResult> PayrollReport(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> PayrollReport(string period = "ThisMonth", string customDateFrom = "", string customDateTo = "")
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -59,7 +59,7 @@ namespace itpayroll.Controllers
             return View(payrolls);
         }
 
-        public async Task<IActionResult> ExportPayrollExcel(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> ExportPayrollExcel(string period = "ThisMonth", string customDateFrom = "", string customDateTo = "")
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -260,3 +260,4 @@ namespace itpayroll.Controllers
         }
     }
 }
+           

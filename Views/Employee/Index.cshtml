@@ -33,8 +33,9 @@
                     <th class="px-4">Name</th>
                     <th class="px-4">Basic Salary</th>
                     <th class="px-4">Status</th>
-                    <th class="px-4">Hire Date</th>
-                    <th class="text-end px-4">Actions</th>
+                        <th class="px-4">Hire Date</th>
+                        <th class="text-end px-4">Actions</th>
+                        <th class="text-end px-4">Shift</th>
                 </tr>
             </thead>
             <tbody>
@@ -52,12 +53,15 @@
                             <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-warning">Edit</a>
                             <a asp-action="Delete" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-danger">Delete</a>
                         </td>
+                        <td class="text-end px-4">
+                            <a asp-action="Assign" asp-controller="ShiftAssignment" asp-route-employeeId="@emp.EmployeeId" class="btn btn-sm btn-outline-primary">Assign Shift</a>
+                        </td>
                     </tr>
                 }
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No employees found.</td>
+                        <td colspan="7" class="text-center text-muted py-4">No employees found.</td>
                     </tr>
                 }
             </tbody>

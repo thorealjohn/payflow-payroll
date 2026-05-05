@@ -22,9 +22,17 @@ namespace itpayroll.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task LogAsync(AuditAction action, string? entity = null, LogType logType = LogType.System)
+        public async Task LogAsync(
+            AuditAction action,
+            string? entity = null,
+            LogType logType = LogType.System,
+            string? resource = null,
+            string? targetId = null,
+            string? metadata = null)
         {
-            var user = await _userManager.GetUserAsync(_httpContextAccessor.HttpContext?.User);
+            var httpContext = _httpContextAccessor.HttpContext;
+            var user = httpContext?.User == null ? null : await _userManager.GetUserAsync(httpContext.User);
+            var userAgent = httpContext?.Request.Headers.UserAgent.ToString();
 
             var audit = new AuditLog
             {
@@ -32,12 +40,28 @@ namespace itpayroll.Services
                 UserEmail = user?.Email,
                 Action = action,
                 Entity = entity,
-                IpAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString(),
+                Resource = resource,
+                TargetId = targetId,
+                IpAddress = httpContext?.Connection?.RemoteIpAddress?.ToString(),
+                UserAgent = userAgent,
+                Browser = UserAgentParser.GetBrowser(userAgent),
+                OperatingSystem = UserAgentParser.GetOperatingSystem(userAgent),
+                RequestId = httpContext?.TraceIdentifier,
+                SessionId = httpContext?.Session?.Id,
+                Metadata = metadata,
                 Timestamp = DateTime.UtcNow,
                 LogType = logType
             };
 
             _context.AuditLogs.Add(audit);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task PruneAsync(int retentionDays)
+        {
+            var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
+            var oldLogs = _context.AuditLogs.Where(log => log.Timestamp < cutoff);
+            _context.AuditLogs.RemoveRange(oldLogs);
             await _context.SaveChangesAsync();
         }
     }

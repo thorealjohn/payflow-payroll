@@ -82,7 +82,6 @@ namespace itpayroll.Controllers
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
             var query = _context.LeaveRequests
-                .Include(l => l.LeaveType)
                 .Include(l => l.ApprovedBy)
                 .Where(l => l.Employee.UserId == userId)
                 .AsQueryable();

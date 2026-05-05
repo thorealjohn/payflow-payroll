@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -43,9 +43,18 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.SignIn.RequireConfirmedEmail = false;
 });
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
 builder.Services.AddControllersWithViews(options =>
 {
+    options.Filters.Add<SensitiveActionPasswordFilter>();
     options.Filters.Add<AuditLoggingActionFilter>();
+    options.Filters.Add<RequirePasswordChangeAttribute>();
 });
 
 // Add authorization policies for role-based access
@@ -70,9 +79,12 @@ builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<PayrollService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession();
 builder.Services.AddScoped<AuditService>();
 
 var app = builder.Build();
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -82,6 +94,10 @@ using (var scope = app.Services.CreateScope())
 
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await SeedData.InitializeAsync(userManager, roleManager, builder.Configuration, context);
+
+    var auditRetentionDays = builder.Configuration.GetValue<int?>("Audit:RetentionDays") ?? 90;
+    var auditService = services.GetRequiredService<AuditService>();
+    await auditService.PruneAsync(auditRetentionDays);
 }
 
 // Configure the HTTP request pipeline.
@@ -101,6 +117,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 

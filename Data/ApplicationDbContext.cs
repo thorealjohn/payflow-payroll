@@ -22,11 +22,15 @@ namespace itpayroll.Data
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Overtime> Overtimes { get; set; }
+        public DbSet<EmployeeShiftAssignment> EmployeeShiftAssignments { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             // AuditLog index (for performance)
             builder.Entity<AuditLog>()
                 .HasIndex(a => a.Timestamp);
+
+            builder.Entity<AuditLog>()
+                .HasIndex(a => new { a.Entity, a.Resource, a.TargetId });
 
             base.OnModelCreating(builder);
             // Soft delete + active filter
@@ -150,6 +154,22 @@ namespace itpayroll.Data
                     .HasForeignKey(n => n.UserId)
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired(false);
+
+                // EmployeeShiftAssignment configuration
+                builder.Entity<EmployeeShiftAssignment>()
+                    .HasIndex(a => new { a.EmployeeId, a.DateFrom });
+
+                builder.Entity<EmployeeShiftAssignment>()
+                    .HasOne(a => a.Employee)
+                    .WithMany()
+                    .HasForeignKey(a => a.EmployeeId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                builder.Entity<EmployeeShiftAssignment>()
+                    .HasOne(a => a.Shift)
+                    .WithMany()
+                    .HasForeignKey(a => a.ShiftId)
+                    .OnDelete(DeleteBehavior.Restrict);
         }
 
     }

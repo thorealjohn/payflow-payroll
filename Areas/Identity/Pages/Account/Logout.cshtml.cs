@@ -53,7 +53,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
             _logger.LogInformation("User logged out.");
 
             // 🔥 FIX: NEVER stay on logout page
-            return Redirect("~/Identity/Account/Login");
+            return RedirectToAction("Login", "Account");
         }
     }
 }

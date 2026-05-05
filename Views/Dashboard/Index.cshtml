@@ -236,35 +236,85 @@ else
     var employee = ViewBag.Employee as itpayroll.Models.Employee;
     if (employee != null)
     {
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card bg-primary text-white">
+        // Summary Cards
+        <div class="row g-3 mb-4">
+            @* Today's Attendance Card *@
+            <div class="col-md-3">
+                @{
+                    var todayStatus = ViewBag.TodayAttendanceStatus as string;
+                    var todayCardColor = todayStatus == "Present" ? "bg-success" : todayStatus == "Late" ? "bg-warning" : "bg-danger";
+                }
+                <div class="card @todayCardColor text-white">
                     <div class="card-body">
-                        <h5 class="card-title">Total Net Pay (All Time)</h5>
-                        <h2 class="display-6">₱@((decimal)ViewBag.TotalNetPay).ToString("N2")</h2>
+                        <h5 class="card-title"><i class="fas fa-calendar-day me-2"></i>Today's Attendance</h5>
+                        <h2 class="display-6">@todayStatus</h2>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+
+            @* This Month Hours Worked *@
+            <div class="col-md-3">
                 <div class="card bg-info text-white">
                     <div class="card-body">
-                        <h5 class="card-title">My Employee #</h5>
-                        <h2 class="display-6">@employee.EmployeeNumber</h2>
+                        <h5 class="card-title"><i class="fas fa-clock me-2"></i>This Month Hours</h5>
+                        <h2 class="display-6">@((decimal)ViewBag.MonthHoursWorked) hrs</h2>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card bg-success text-white">
+
+            @* Pending Requests *@
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
                     <div class="card-body">
-                        <h5 class="card-title">Status</h5>
-                        <h2 class="display-6">@employee.Status</h2>
+                        <h5 class="card-title"><i class="fas fa-tasks me-2"></i>Pending Requests</h5>
+                        <h2 class="display-6">@ViewBag.PendingRequestsCount</h2>
+                    </div>
+                </div>
+            </div>
+
+            @* Latest Net Pay *@
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-money-bill me-2"></i>Latest Net Pay</h5>
+                        <h2 class="display-6">₱@((decimal?)ViewBag.LatestNetPay ?? 0).ToString("N2")</h2>
                     </div>
                 </div>
             </div>
         </div>
 
+        @* Quick Actions *@
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body d-flex gap-2">
+                        <form asp-controller="Attendance" asp-action="TimeIn" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-success" onclick="return confirm('Record Time In now?')">
+                                <i class="fas fa-sign-in-alt me-2"></i>Time In
+                            </button>
+                        </form>
+                        <form asp-controller="Attendance" asp-action="TimeOut" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Record Time Out now?')">
+                                <i class="fas fa-sign-out-alt me-2"></i>Time Out
+                            </button>
+                        </form>
+                        <a asp-controller="Overtime" asp-action="MyOvertime" class="btn btn-outline-success">
+                            <i class="fas fa-business-time me-2"></i>Request Overtime
+                        </a>
+                        <a asp-controller="Leave" asp-action="Create" class="btn btn-outline-info">
+                            <i class="fas fa-file-medical me-2"></i>File Leave
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Recent Activity *@
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Recent Payslips</h5>
@@ -299,7 +349,7 @@ else
                 </div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Recent Attendance</h5>
@@ -311,7 +361,6 @@ else
                                 <tr>
                                     <th>Date</th>
                                     <th>Time In</th>
-                                    <th>Time Out</th>
                                     <th>Hours</th>
                                 </tr>
                             </thead>
@@ -321,13 +370,59 @@ else
                                     <tr>
                                         <td>@a.Date.ToString("MMM dd")</td>
                                         <td>@a.TimeIn.ToString(@"hh\:mm")</td>
-                                        <td>@a.TimeOut.ToString(@"hh\:mm")</td>
                                         <td>@a.TotalHours.ToString("N2")</td>
                                     </tr>
                                 }
                                 @if (!((List<itpayroll.Models.Attendance>)ViewBag.MyAttendance).Any())
                                 {
-                                    <tr><td colspan="4" class="text-center text-muted">No attendance records yet.</td></tr>
+                                    <tr><td colspan="3" class="text-center text-muted">No attendance records yet.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Last Request Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.LastOvertimeStatus != null)
+                                {
+                                    <tr>
+                                        <td><i class="fas fa-business-time me-2"></i>Overtime</td>
+                                        <td>
+                                            @if (ViewBag.LastOvertimeStatus == "Pending") { <span class="badge bg-warning">Pending</span> }
+                                            else if (ViewBag.LastOvertimeStatus == "Approved") { <span class="badge bg-success">Approved</span> }
+                                            else { <span class="badge bg-danger">Rejected</span> }
+                                        </td>
+                                    </tr>
+                                }
+                                @if (ViewBag.LastLeaveStatus != null)
+                                {
+                                    <tr>
+                                        <td><i class="fas fa-file-medical me-2"></i>Leave</td>
+                                        <td>
+                                            @if (ViewBag.LastLeaveStatus == "Pending") { <span class="badge bg-warning">Pending</span> }
+                                            else if (ViewBag.LastLeaveStatus == "Approved") { <span class="badge bg-success">Approved</span> }
+                                            else if (ViewBag.LastLeaveStatus == "Rejected") { <span class="badge bg-danger">Rejected</span> }
+                                            else { <span class="badge bg-secondary">Cancelled</span> }
+                                        </td>
+                                    </tr>
+                                }
+                                @if (ViewBag.LastOvertimeStatus == null && ViewBag.LastLeaveStatus == null)
+                                {
+                                    <tr><td colspan="2" class="text-center text-muted">No requests yet.</td></tr>
                                 }
                             </tbody>
                         </table>

@@ -39,6 +39,38 @@ namespace itpayroll.Models
         [ForeignKey(nameof(ShiftId))]
         public Shift? Shift { get; set; }
 
+        // EMPLOYMENT DETAILS
+        [MaxLength(100)]
+        public string? Department { get; set; }
+
+        [MaxLength(100)]
+        public string? Position { get; set; }
+
+        public EmploymentType? EmploymentType { get; set; }
+
+        // PAYROLL INFORMATION
+        public SalaryType SalaryType { get; set; } = SalaryType.Monthly;
+
+        public PayFrequency PayFrequency { get; set; } = PayFrequency.Monthly;
+
+        [MaxLength(100)]
+        public string? BankName { get; set; }
+
+        [MaxLength(50)]
+        public string? BankAccountNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? TIN { get; set; } // Tax Identification Number
+
+        [MaxLength(50)]
+        public string? SSSNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? PhilHealthNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? PagIBIGNumber { get; set; }
+
         // AUDIT
         [Required]
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
@@ -80,5 +112,26 @@ namespace itpayroll.Models
         Active,
         Inactive,
         Suspended
+    }
+
+    public enum EmploymentType
+    {
+        FullTime,
+        PartTime,
+        Contractual
+    }
+
+    public enum SalaryType
+    {
+        Monthly,
+        Daily,
+        Hourly
+    }
+
+    public enum PayFrequency
+    {
+        Weekly,
+        SemiMonthly,
+        Monthly
     }
 }

@@ -26,6 +26,9 @@ namespace itpayroll.Models
         [Display(Name = "Is Night Shift")]
         public bool IsNightShift { get; set; }
 
+        [Display(Name = "Is Overnight Shift")]
+        public bool IsOvernight { get; set; }
+
         [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
 

@@ -1,0 +1,60 @@
+@model List<itpayroll.Models.EmployeeShiftAssignment>
+@{
+    ViewData["Title"] = "Shift Assignments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Shift Assignments</h4>
+        <small class="text-muted">Manage employee shift assignments</small>
+    </div>
+    <a asp-action="Assign" class="btn btn-success">+ Assign Shift</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Employee</th>
+                    <th class="px-4">Shift</th>
+                    <th class="px-4">From Date</th>
+                    <th class="px-4">To Date</th>
+                    <th class="px-4">Status</th>
+                    <th class="text-end px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    var isActive = a.DateTo == null || a.DateTo >= DateTime.Today;
+                    <tr>
+                        <td class="px-4"><strong>@a.Employee?.User?.FirstName @a.Employee?.User?.LastName</strong><br /><small class="text-muted">@a.Employee?.EmployeeNumber</small></td>
+                        <td class="px-4">@a.Shift?.ShiftName</td>
+                        <td class="px-4">@a.DateFrom.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">@(a.DateTo?.ToString("MMM dd, yyyy") ?? "Ongoing")</td>
+                        <td class="px-4">
+                            <span class="badge @(isActive ? "bg-success" : "bg-secondary")">
+                                @(isActive ? "Active" : "Ended")
+                            </span>
+                        </td>
+                        <td class="text-end px-4">
+                            @if (isActive)
+                            {
+                                <form asp-action="EndAssignment" asp-route-id="@a.AssignmentId" method="post" class="d-inline" onsubmit="return confirm('End this shift assignment?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">End Assignment</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No shift assignments found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -52,6 +52,22 @@
 
         @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
         {
+            <a asp-controller="Employee" asp-action="Index" class="nav-link @(currentController == "Employee" ? "active" : "")">
+                <i class="fas fa-user-tie"></i>
+                <span class="text">Employees</span>
+            </a>
+        }
+
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
+        {
+            <a asp-controller="Shift" asp-action="Index" class="nav-link @(currentController == "Shift" ? "active" : "")">
+                <i class="fas fa-clock"></i>
+                <span class="text">Shifts</span>
+            </a>
+        }
+
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
+        {
             bool isAttendanceSection = currentController == "Attendance" || currentController == "Leave";
             <div class="sidebar-accordion">
                 <a class="nav-link @(isAttendanceSection ? "active" : "")" data-bs-toggle="collapse" href="#attendanceCollapse" role="button" aria-expanded="@(isAttendanceSection ? "true" : "false")">
@@ -102,26 +118,29 @@
 
         @if (User.IsInRole("Employee"))
         {
-            bool isMyAttendanceSection = currentController == "Attendance" || currentController == "Leave";
-            <div class="sidebar-accordion">
-                <a class="nav-link @(isMyAttendanceSection ? "active" : "")" data-bs-toggle="collapse" href="#myAttendanceCollapse" role="button" aria-expanded="@(isMyAttendanceSection ? "true" : "false")">
-                    <i class="fas fa-calendar-check"></i>
-                    <span class="text">My Attendance</span>
-                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isMyAttendanceSection ? "rotated" : "")"></i>
-                </a>
-                <div class="collapse sidebar-submenu @(isMyAttendanceSection ? "show" : "")" id="myAttendanceCollapse">
-                    <a asp-controller="Attendance" asp-action="MyAttendance" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyAttendance" ? "active" : "")">
-                        <span class="text">My Attendance</span>
-                    </a>
-                    <a asp-controller="Leave" asp-action="MyLeaves" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyLeaves" ? "active" : "")">
-                        <span class="text">My Leaves</span>
-                    </a>
-                </div>
-            </div>
+            <a asp-controller="Attendance" asp-action="MyAttendance" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyAttendance" ? "active" : "")">
+                <i class="fas fa-calendar-check"></i>
+                <span class="text">My Attendance</span>
+            </a>
+
+            <a asp-controller="Overtime" asp-action="MyOvertime" class="nav-link @(currentController == "Overtime" && ViewContext.RouteData.Values["action"]?.ToString() == "MyOvertime" ? "active" : "")">
+                <i class="fas fa-business-time"></i>
+                <span class="text">My Overtime</span>
+            </a>
+
+            <a asp-controller="Leave" asp-action="MyLeaves" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyLeaves" ? "active" : "")">
+                <i class="fas fa-file-medical"></i>
+                <span class="text">My Leave</span>
+            </a>
 
             <a asp-controller="Payroll" asp-action="MyPayslips" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyPayslips" ? "active" : "")">
                 <i class="fas fa-file-invoice-dollar"></i>
                 <span class="text">My Payslips</span>
+            </a>
+
+            <a asp-controller="Dashboard" asp-action="Profile" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")">
+                <i class="fas fa-user-circle"></i>
+                <span class="text">Profile</span>
             </a>
         }
     </div>
@@ -187,7 +206,7 @@
                             </label>
                         </li>
                         <li>
-                            <form method="post" asp-area="Identity" asp-page="/Account/Logout">
+                            <form method="post" asp-controller="Account" asp-action="Logout">
                                 <button type="submit" class="dropdown-item text-danger">
                                     Logout
                                 </button>
@@ -202,18 +221,52 @@
 
         <!-- Page Content -->
         <div class="mt-4">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
             @RenderBody()
         </div>
     
 
     @await RenderSectionAsync("Scripts", required: false)
     @Html.AntiForgeryToken()
+    <div class="modal fade" id="securityPasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="securityPasswordInput" class="form-label">Enter your password to continue.</label>
+                    <input type="password" id="securityPasswordInput" class="form-control" autocomplete="current-password" />
+                    <div class="text-danger small mt-2 d-none" id="securityPasswordError">Password is required.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="securityPasswordConfirm">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Wait for full page load
         document.addEventListener("DOMContentLoaded", function() {
             initTheme();
             initSidebar();
+            initSecurityPasswordModal();
 
             // Prevent dropdown from closing when interacting with dark mode toggle
             const themeToggle = document.getElementById('themeToggle');
@@ -310,6 +363,57 @@
         // Make toggleSidebar globally available
         window.toggleSidebar = toggleSidebar;
         window.toggleDarkMode = toggleDarkMode;
+
+        function initSecurityPasswordModal() {
+            const sensitiveActions = ['Edit', 'Delete', 'SoftDelete', 'Release', 'Void', 'Approve', 'Reject', 'Process'];
+            const modalElement = document.getElementById('securityPasswordModal');
+            const input = document.getElementById('securityPasswordInput');
+            const error = document.getElementById('securityPasswordError');
+            const confirmButton = document.getElementById('securityPasswordConfirm');
+            if (!modalElement || !input || !confirmButton) return;
+
+            const modal = new bootstrap.Modal(modalElement);
+            let pendingForm = null;
+
+            document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(form => {
+                const action = form.getAttribute('action') || '';
+                const isSensitive = sensitiveActions.some(word => action.toLowerCase().includes(word.toLowerCase()));
+                if (!isSensitive) return;
+
+                form.addEventListener('submit', function (event) {
+                    if (form.dataset.securityConfirmed === 'true') return;
+                    event.preventDefault();
+                    pendingForm = form;
+                    input.value = '';
+                    error.classList.add('d-none');
+                    modal.show();
+                    setTimeout(() => input.focus(), 150);
+                });
+            });
+
+            confirmButton.addEventListener('click', function () {
+                if (!pendingForm) return;
+                const password = input.value.trim();
+                if (!password) {
+                    error.classList.remove('d-none');
+                    input.focus();
+                    return;
+                }
+
+                let hidden = pendingForm.querySelector('input[name="SecurityPassword"]');
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'SecurityPassword';
+                    pendingForm.appendChild(hidden);
+                }
+
+                hidden.value = password;
+                pendingForm.dataset.securityConfirmed = 'true';
+                modal.hide();
+                pendingForm.submit();
+            });
+        }
 
         // Notification functions
         function loadNotifications() {

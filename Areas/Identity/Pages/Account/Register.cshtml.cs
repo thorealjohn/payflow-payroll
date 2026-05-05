@@ -22,6 +22,7 @@ using itpayroll.Areas.Identity.Data;
 
 namespace itpayroll.Areas.Identity.Pages.Account
 {
+    [Authorize(Roles = "SuperAdmin,Admin,HR")]
     public class RegisterModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;

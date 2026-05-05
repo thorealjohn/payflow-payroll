@@ -21,7 +21,31 @@ namespace itpayroll.Models
         public string? Entity { get; set; }
 
         [MaxLength(100)]
+        public string? Resource { get; set; }
+
+        [MaxLength(100)]
+        public string? TargetId { get; set; }
+
+        [MaxLength(100)]
         public string? IpAddress { get; set; }
+
+        [MaxLength(500)]
+        public string? UserAgent { get; set; }
+
+        [MaxLength(100)]
+        public string? Browser { get; set; }
+
+        [MaxLength(100)]
+        public string? OperatingSystem { get; set; }
+
+        [MaxLength(100)]
+        public string? RequestId { get; set; }
+
+        [MaxLength(100)]
+        public string? SessionId { get; set; }
+
+        [MaxLength(2000)]
+        public string? Metadata { get; set; }
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 

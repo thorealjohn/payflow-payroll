@@ -3,7 +3,9 @@ using itpayroll.Data;
 using itpayroll.Models;
 using itpayroll.Utilities;
 using itpayroll.ViewModels;
+using itpayroll.Areas.Identity.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +16,12 @@ namespace itpayroll.Controllers
     public class OvertimeController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public OvertimeController(ApplicationDbContext context)
+        public OvertimeController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
@@ -192,7 +196,8 @@ namespace itpayroll.Controllers
             return View(overtime);
         }
 
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
+        [ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -206,6 +211,124 @@ namespace itpayroll.Controllers
 
             TempData["Success"] = "Overtime record deleted successfully.";
             return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Roles = $"{Roles.Employee}")]
+        public async Task<IActionResult> MyOvertime(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var userId = user?.Id;
+
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
+            var query = _context.Overtimes
+                .Include(o => o.Employee)
+                .Where(o => o.Employee.UserId == userId)
+                .AsQueryable();
+
+            if (from.HasValue)
+            {
+                query = query.Where(o => o.Date >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                query = query.Where(o => o.Date <= to.Value);
+            }
+
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
+
+            var overtimes = await query
+                .OrderByDescending(o => o.Date)
+                .ToListAsync();
+
+            return View(overtimes);
+        }
+
+        [Authorize(Roles = $"{Roles.Employee}")]
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.Employee}")]
+        public async Task<IActionResult> Create(OvertimeViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            var userId = user?.Id;
+            var employee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.UserId == userId);
+
+            if (employee == null)
+            {
+                TempData["Error"] = "Employee profile not found.";
+                return View(model);
+            }
+
+            var existingOvertime = await _context.Overtimes
+                .AnyAsync(o => o.EmployeeId == employee.EmployeeId && o.Date == model.Date.Date);
+
+            if (existingOvertime)
+            {
+                ModelState.AddModelError("", "You already have an overtime request for this date.");
+                return View(model);
+            }
+
+            var overtime = new Overtime
+            {
+                EmployeeId = employee.EmployeeId,
+                Date = model.Date.Date,
+                Hours = model.Hours,
+                Reason = model.Reason,
+                Status = OvertimeStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Overtimes.Add(overtime);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Overtime request submitted successfully.";
+            return RedirectToAction(nameof(MyOvertime));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.Employee}")]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var userId = user?.Id;
+            var employee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.UserId == userId);
+
+            var employeeId = employee?.EmployeeId;
+            var overtime = await _context.Overtimes
+                .FirstOrDefaultAsync(o => o.OvertimeId == id &&
+                                         o.EmployeeId == employeeId);
+
+            if (overtime == null)
+                return NotFound();
+
+            if (overtime.Status != OvertimeStatus.Pending)
+            {
+                TempData["Error"] = "Only pending overtime requests can be cancelled.";
+                return RedirectToAction(nameof(MyOvertime));
+            }
+
+            _context.Overtimes.Remove(overtime);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Overtime request cancelled.";
+            return RedirectToAction(nameof(MyOvertime));
         }
 
         private bool OvertimeExists(int id)

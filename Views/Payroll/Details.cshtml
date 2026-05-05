@@ -44,7 +44,9 @@
                             <td><strong>Gross Pay</strong></td>
                             <td class="text-end"><strong>₱@Model.Payroll.GrossPay.ToString("N2")</strong></td>
                         </tr>
+
                     </tbody>
+
                 </table>
             </div>
         </div>
@@ -72,6 +74,16 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            Work Summary
+        </div>
+        <div class="card-body">
+            <p>Total Hours Worked: @Model.TotalHours</p>
+            <p>Overtime Hours: @Model.OvertimeHours</p>
         </div>
     </div>
 </div>

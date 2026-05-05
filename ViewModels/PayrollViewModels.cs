@@ -26,5 +26,7 @@ namespace itpayroll.ViewModels
         public List<Earning> Earnings { get; set; } = new();
         public List<Deduction> Deductions { get; set; } = new();
         public Employee Employee { get; set; } = null!;
+        public decimal TotalHours { get; set; }
+        public decimal OvertimeHours { get; set; }
     }
 }

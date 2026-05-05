@@ -16,6 +16,18 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
+                    <label asp-for="FirstName" class="form-label"></label>
+                    <input asp-for="FirstName" class="form-control" />
+                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LastName" class="form-label"></label>
+                    <input asp-for="LastName" class="form-control" />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label asp-for="EmployeeNumber" class="form-label"></label>
                     <input asp-for="EmployeeNumber" class="form-control" />
                     <span asp-validation-for="EmployeeNumber" class="text-danger"></span>

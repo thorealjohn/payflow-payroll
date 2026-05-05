@@ -75,11 +75,29 @@ namespace itpayroll.Services
             return (lateMinutes, undertimeMinutes);
         }
 
-        public double CalculateNightShiftHours(TimeSpan timeIn, TimeSpan timeOut, DateTime date)
+        public double CalculateNightShiftHours(TimeSpan timeIn, TimeSpan timeOut, Shift shift, DateTime date)
         {
-            // Night shift window: 10:00 PM - 6:00 AM
-            var nightStart = date.Date.AddHours(22); // 10 PM
-            var nightEnd = date.Date.AddDays(1).AddHours(6); // 6 AM next day
+            if (shift == null) return 0;
+
+            DateTime nightStart;
+            DateTime nightEnd;
+
+            if (shift.IsOvernight)
+            {
+                // For overnight shifts, use the shift's actual times
+                nightStart = date.Date.Add(shift.StartTime);
+                nightEnd = date.Date.Add(shift.EndTime);
+                if (nightEnd <= nightStart)
+                {
+                    nightEnd = nightEnd.AddDays(1);
+                }
+            }
+            else
+            {
+                // Fixed window for standard night shift calculation
+                nightStart = date.Date.AddHours(22); // 10 PM
+                nightEnd = date.Date.AddDays(1).AddHours(6); // 6 AM next day
+            }
 
             var timeInDateTime = date.Date.Add(timeIn);
             var timeOutDateTime = date.Date.Add(timeOut);

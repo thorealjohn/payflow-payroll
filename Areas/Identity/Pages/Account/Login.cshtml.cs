@@ -99,80 +99,14 @@ namespace itpayroll.Areas.Identity.Pages.Account
             public bool RememberMe { get; set; }
         }
 
-        public async Task OnGetAsync(string returnUrl = null)
+        public Task<IActionResult> OnGetAsync(string returnUrl = null)
         {
-            if (!string.IsNullOrEmpty(ErrorMessage))
-            {
-                ModelState.AddModelError(string.Empty, ErrorMessage);
-            }
-
-            returnUrl ??= Url.Content("~/");
-
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
-
-            ReturnUrl = returnUrl;
+            return Task.FromResult<IActionResult>(RedirectToAction("Login", "Account", new { returnUrl }));
         }
 
-        public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+        public Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= "/Dashboard";
-
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
-
-            if (ModelState.IsValid)
-            {
-                // This doesn't count login failures towards account lockout
-                // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation("User logged in.");
-
-                    var user = await _userManager.FindByEmailAsync(Input.Email);
-                    if (user != null)
-                    {
-                                await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
-                    }
-
-                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl != "/")
-                    {
-                        return LocalRedirect(returnUrl);
-                    }
-
-                    return RedirectToAction("Index", "Dashboard");
-                }
-                if (result.RequiresTwoFactor)
-                {
-                    return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
-                }
-                if (result.IsLockedOut)
-                {
-                    _logger.LogWarning("User account locked out.");
-                    return RedirectToPage("./Lockout");
-                }
-                else
-                {
-                    var attemptedUser = await _userManager.FindByEmailAsync(Input.Email);
-                    if (attemptedUser != null)
-                    {
-                        var dbUser = await _context.Users.FindAsync(attemptedUser.Id);
-
-                        if (dbUser != null)
-                        {
-                            await _auditService.LogAsync(AuditAction.FailedLogin, "Account", LogType.Security);
-                        }
-                    }
-
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                    return Page();
-                }
-            }
-
-            // If we got this far, something failed, redisplay form
-            return Page();
+            return Task.FromResult<IActionResult>(RedirectToAction("Login", "Account", new { returnUrl }));
         }
     }
 }

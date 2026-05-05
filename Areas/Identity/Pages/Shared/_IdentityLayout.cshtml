@@ -1,0 +1,82 @@
+@{
+    var currentTheme = Context.Request.Cookies["theme"] ?? "light";
+}
+
+<!DOCTYPE html>
+<html class="@(currentTheme == "dark" ? "dark-mode" : "")">
+<head>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PayFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .identity-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 2rem;
+            max-width: 450px;
+            width: 100%;
+        }
+        .dark-mode .identity-card {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        .dark-mode body {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+        .brand-logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .brand-logo h3 {
+            color: #667eea;
+            font-weight: 600;
+        }
+        .dark-mode .brand-logo h3 {
+            color: #90cdf4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="identity-card">
+            <div class="brand-logo">
+                <h3><i class="fas fa-calculator me-2"></i>PayFlow</h3>
+                <p class="text-muted small">Human Resource Management System</p>
+            </div>
+
+            @RenderBody()
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sync theme between localStorage and cookie
+        function toggleDarkMode() {
+            const root = document.documentElement;
+            const isDark = root.classList.toggle('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Set cookie for Razor Pages
+            document.cookie = `theme=${isDark ? 'dark' : 'light'}; path=/; max-age=31536000`;
+        }
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

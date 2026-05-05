@@ -13,7 +13,7 @@ namespace itpayroll.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260501012751_mid-update")]
-    partial class midupdate
+    partial class Midupdate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

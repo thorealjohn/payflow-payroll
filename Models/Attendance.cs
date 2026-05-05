@@ -22,6 +22,11 @@ namespace itpayroll.Models
         [ForeignKey(nameof(EmployeeId))]
         public Employee Employee { get; set; } = null!;
 
+        public int? ShiftId { get; set; }
+
+        [ForeignKey(nameof(ShiftId))]
+        public Shift? Shift { get; set; }
+
         [Required]
         public DateTime Date { get; set; }
 

@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using itpayroll.Areas.Identity.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace itpayroll.Controllers
 {
@@ -16,15 +18,17 @@ namespace itpayroll.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly PayrollService _payrollService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public PayrollController(ApplicationDbContext context, PayrollService payrollService)
+        public PayrollController(ApplicationDbContext context, PayrollService payrollService, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _payrollService = payrollService;
+            _userManager = userManager;
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(string searchString, string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> Index(string searchString, string status, string period = "ThisMonth", string customDateFrom = "", string customDateTo = "")
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -45,16 +49,26 @@ namespace itpayroll.Controllers
 
             if (!string.IsNullOrEmpty(searchString))
             {
-                payrolls = payrolls.Where(p =>
-                    p.Employee.User.FirstName.Contains(searchString) ||
-                    p.Employee.User.LastName.Contains(searchString) ||
-                    p.Employee.EmployeeNumber.Contains(searchString));
+                payrolls = payrolls.Where(p => !(!p.Employee.User.FirstName.Contains(searchString) &&
+!p.Employee.User.LastName.Contains(searchString) &&
+!p.Employee.EmployeeNumber.Contains(searchString)));
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    payrolls = payrolls.Where(p => p.Status.ToString() == status);
+                }
+
             }
+
 
             ViewBag.CurrentFilter = searchString;
             ViewBag.Period = period;
+            ViewBag.Status = status; 
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.TotalNet = await payrolls.SumAsync(p => p.NetPay);
+            ViewBag.ProcessedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Processed);
+            ViewBag.ReleasedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Released);
 
             var result = await payrolls
                 .OrderByDescending(p => p.CreatedAt)
@@ -143,6 +157,20 @@ namespace itpayroll.Controllers
                 Deductions = deductions,
                 Employee = payroll.Employee
             };
+            var totalHours = await _context.Attendances
+    .Where(a => a.EmployeeId == payroll.EmployeeId &&
+                a.Date >= payroll.PeriodStart &&
+                a.Date <= payroll.PeriodEnd)
+    .SumAsync(a => a.TotalHours);
+
+            var overtimeHours = await _context.Attendances
+                .Where(a => a.EmployeeId == payroll.EmployeeId &&
+                            a.Date >= payroll.PeriodStart &&
+                            a.Date <= payroll.PeriodEnd)
+                .SumAsync(a => a.OvertimeHours);
+
+            viewModel.TotalHours = (decimal)totalHours;
+            viewModel.OvertimeHours = (decimal)overtimeHours;
 
             return View(viewModel);
         }
@@ -171,10 +199,15 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyPayslips(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> MyPayslips(string period = "ThisMonth", string customDateFrom = "", string customDateTo = "")
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
             var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.UserId == User.Identity.Name);
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.UserId == user.Id);
 
             if (employee == null)
             {
@@ -232,8 +265,13 @@ namespace itpayroll.Controllers
         [Authorize(Roles = $"{Roles.Employee}")]
         public async Task<IActionResult> MyPayslip(int id)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
             var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.UserId == User.Identity.Name);
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.UserId == user.Id);
 
             if (employee == null)
                 return NotFound();
@@ -263,6 +301,25 @@ namespace itpayroll.Controllers
             return View(viewModel);
         }
 
+        [HttpPost]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
+        public async Task<IActionResult> Void(int id)
+        {
+            var payroll = await _context.Payrolls.FindAsync(id);
+            if (payroll == null)
+                return NotFound();
+
+            payroll.Status = PayrollStatus.Draft; // or create "Voided" enum if you want
+            payroll.ModifiedAt = DateTime.UtcNow;
+            payroll.ModifiedBy = User.Identity?.Name ?? "System";
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Payroll voided successfully.";
+            return RedirectToAction(nameof(Index));
+        }
+
+
         private async Task PopulateEmployeeDropdown()
         {
             var employees = await _context.Employees
@@ -279,3 +336,4 @@ namespace itpayroll.Controllers
         }
     }
 }
+            

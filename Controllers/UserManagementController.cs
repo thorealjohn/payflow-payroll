@@ -1,4 +1,4 @@
-﻿using itpayroll.Areas.Identity.Data;
+using itpayroll.Areas.Identity.Data;
 using itpayroll.Constant;
 using itpayroll.Data;
 using itpayroll.Models;
@@ -46,7 +46,7 @@ namespace itpayroll.Controllers
         {
             var query = _userManager.Users.AsQueryable();
 
-            // 🔍 Search
+            // Search
             if (!string.IsNullOrEmpty(searchString))
             {
                 query = query.Where(u =>
@@ -55,15 +55,15 @@ namespace itpayroll.Controllers
                     u.Email.Contains(searchString));
             }
 
-            // 🎯 Role filter
+            // Role filter - materialize first to avoid concurrency         
             if (!string.IsNullOrEmpty(role))
             {
                 var usersInRole = await _userManager.GetUsersInRoleAsync(role);
-                var userIds = usersInRole.Select(u => u.Id);
-                query = query.Where(u => userIds.Contains(u.Id));
+                var roleFilterIds = usersInRole.Select(u => u.Id).ToList(); // Materialize
+                query = query.Where(u => roleFilterIds.Contains(u.Id));
             }
 
-            // 📌 Status filter
+            // Status filter
             if (!string.IsNullOrEmpty(status))
             {
                 bool isActive = status == "active";
@@ -73,7 +73,7 @@ namespace itpayroll.Controllers
             int pageSize = 10;
             int pageNumber = page ?? 1;
 
-            // 🔥 FIX HERE
+            // Get total count
             int totalUsers = await query.CountAsync();
 
             var users = await query
@@ -81,19 +81,22 @@ namespace itpayroll.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            var userRoles = new Dictionary<string, string>();
+            // Batched role lookup - single query instead of per-user async calls
+            var userIdsForRoles = users.Select(u => u.Id).ToList();
+            var userRolesDict = await _context.UserRoles
+                .Where(ur => userIdsForRoles.Contains(ur.UserId))
+                .Join(_context.Roles,
+                    ur => ur.RoleId,
+                    r => r.Id,
+                    (ur, r) => new { ur.UserId, r.Name })
+                .GroupBy(x => x.UserId)
+                .ToDictionaryAsync(
+                    g => g.Key,
+                    g => string.Join(", ", g.Select(x => x.Name)));
 
-            foreach (var user in users)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                userRoles[user.Id] = string.Join(", ", roles);
-            }
-
-            ViewBag.UserRoles = userRoles;
+            ViewBag.UserRoles = userRolesDict;
             ViewBag.CurrentUserRole = GetCurrentUserRole();
             ViewBag.CurrentPage = pageNumber;
-
-            // 🔥 FIXED LINE
             ViewBag.TotalPages = (int)Math.Ceiling((double)totalUsers / pageSize);
 
             return View(users);
@@ -381,20 +384,18 @@ namespace itpayroll.Controllers
 
             await _userManager.UpdateAsync(user);
 
-            
             await _auditService.LogAsync(AuditAction.Delete, $"User: {user.Email}");
             return RedirectToAction(nameof(Index));
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> AuditLogs(
-    string? logType = null,
-    string? searchString = null,
-    string period = "ThisMonth",
-    string customDateFrom = null,
-    string customDateTo = null,
-    int page = 1
-)
+            string? logType = null,
+            string? searchString = null,
+            string period = "ThisMonth",
+            string customDateFrom = "",
+            string customDateTo = "",
+            int page = 1)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -429,13 +430,22 @@ namespace itpayroll.Controllers
                     logs = logs.Where(l =>
                         (l.UserEmail != null && l.UserEmail.ToLower().Contains(lowerSearch)) ||
                         (l.Entity != null && l.Entity.ToLower().Contains(lowerSearch)) ||
+                        (l.Resource != null && l.Resource.ToLower().Contains(lowerSearch)) ||
+                        (l.TargetId != null && l.TargetId.ToLower().Contains(lowerSearch)) ||
+                        (l.Browser != null && l.Browser.ToLower().Contains(lowerSearch)) ||
+                        (l.OperatingSystem != null && l.OperatingSystem.ToLower().Contains(lowerSearch)) ||
                         l.Action == actionEnum);
                 }
                 else
                 {
                     logs = logs.Where(l =>
                         (l.UserEmail != null && l.UserEmail.ToLower().Contains(lowerSearch)) ||
-                        (l.Entity != null && l.Entity.ToLower().Contains(lowerSearch)));
+                        (l.Entity != null && l.Entity.ToLower().Contains(lowerSearch)) ||
+                        (l.Resource != null && l.Resource.ToLower().Contains(lowerSearch)) ||
+                        (l.TargetId != null && l.TargetId.ToLower().Contains(lowerSearch)) ||
+                        (l.Browser != null && l.Browser.ToLower().Contains(lowerSearch)) ||
+                        (l.OperatingSystem != null && l.OperatingSystem.ToLower().Contains(lowerSearch)) ||
+                        (l.Metadata != null && l.Metadata.ToLower().Contains(lowerSearch)));
                 }
             }
 
@@ -453,7 +463,15 @@ namespace itpayroll.Controllers
                     UserEmail = l.UserEmail,
                     Action = l.Action,
                     Entity = l.Entity,
+                    Resource = l.Resource,
+                    TargetId = l.TargetId,
                     IpAddress = l.IpAddress,
+                    UserAgent = l.UserAgent,
+                    Browser = l.Browser,
+                    OperatingSystem = l.OperatingSystem,
+                    RequestId = l.RequestId,
+                    SessionId = l.SessionId,
+                    Metadata = l.Metadata,
                     Timestamp = l.Timestamp,
                     LogType = l.LogType
                 })

@@ -1,0 +1,51 @@
+@model itpayroll.Models.EmployeeShiftAssignment
+@{
+    ViewData["Title"] = "Assign Shift";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Assign Shift to Employee</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Assign" method="post">
+                    <div class="mb-3">
+                        <label asp-for="EmployeeId" class="form-label">Employee</label>
+                        <select asp-for="EmployeeId" class="form-select" asp-items="@(new SelectList(ViewBag.Employees, "EmployeeId", "User.FirstName", Model.EmployeeId))">
+                            <option value="">-- Select Employee --</option>
+                        </select>
+                        <span asp-validation-for="EmployeeId" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ShiftId" class="form-label">Shift</label>
+                        <select asp-for="ShiftId" class="form-select" asp-items="@(new SelectList(ViewBag.Shifts, "ShiftId", "ShiftName", Model.ShiftId))">
+                            <option value="">-- Select Shift --</option>
+                        </select>
+                        <span asp-validation-for="ShiftId" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DateFrom" class="form-label">From Date</label>
+                            <input asp-for="DateFrom" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="DateFrom" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DateTo" class="form-label">To Date (Optional)</label>
+                            <input asp-for="DateTo" type="date" class="form-control" />
+                            <small class="text-muted">Leave blank for ongoing assignment</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Assign Shift</button>
+                        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

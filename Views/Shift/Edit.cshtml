@@ -1,72 +1,76 @@
 @model itpayroll.Models.Shift
-
 @{
     ViewData["Title"] = "Edit Shift";
 }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Edit Shift</h5>
-                </div>
-                <div class="card-body">
-                    <form asp-action="Edit">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                        <input type="hidden" asp-for="ShiftId" />
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Edit Shift</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="ShiftId" />
+                    <input type="hidden" asp-for="CreatedDate" />
 
-                        <div class="mb-3">
-                            <label asp-for="ShiftName" class="form-label"></label>
-                            <input asp-for="ShiftName" class="form-control" />
-                            <span asp-validation-for="ShiftName" class="text-danger"></span>
-                        </div>
+                    <div class="mb-3">
+                        <label asp-for="ShiftName" class="form-label"></label>
+                        <input asp-for="ShiftName" class="form-control" />
+                        <span asp-validation-for="ShiftName" class="text-danger"></span>
+                    </div>
 
-                        <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
                             <label asp-for="StartTime" class="form-label"></label>
-                            <input asp-for="StartTime" class="form-control" type="time" />
+                            <input asp-for="StartTime" type="time" class="form-control" />
                             <span asp-validation-for="StartTime" class="text-danger"></span>
                         </div>
-
-                        <div class="mb-3">
+                        <div class="col-md-6 mb-3">
                             <label asp-for="EndTime" class="form-label"></label>
-                            <input asp-for="EndTime" class="form-control" type="time" />
+                            <input asp-for="EndTime" type="time" class="form-control" />
                             <span asp-validation-for="EndTime" class="text-danger"></span>
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label asp-for="GracePeriodMinutes" class="form-label"></label>
-                            <input asp-for="GracePeriodMinutes" class="form-control" />
-                            <span asp-validation-for="GracePeriodMinutes" class="text-danger"></span>
-                        </div>
+                    <div class="mb-3">
+                        <label asp-for="GracePeriodMinutes" class="form-label"></label>
+                        <input asp-for="GracePeriodMinutes" class="form-control" />
+                        <span asp-validation-for="GracePeriodMinutes" class="text-danger"></span>
+                    </div>
 
-                        <div class="mb-3 form-check">
-                            <input asp-for="IsNightShift" class="form-check-input" />
-                            <label asp-for="IsNightShift" class="form-check-label"></label>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsNightShift" class="form-check-input" />
+                                <label asp-for="IsNightShift" class="form-check-label"></label>
+                            </div>
                         </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsOvernight" class="form-check-input" />
+                                <label asp-for="IsOvernight" class="form-check-label"></label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsActive" class="form-check-input" />
+                                <label asp-for="IsActive" class="form-check-label"></label>
+                            </div>
+                        </div>
+                    </div>
 
-                        <div class="mb-3 form-check">
-                            <input asp-for="IsActive" class="form-check-input" />
-                            <label asp-for="IsActive" class="form-check-label"></label>
-                        </div>
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                    </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Description" class="form-label"></label>
-                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
-                            <button type="submit" class="btn btn-primary">Save</button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Update Shift</button>
+                        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}

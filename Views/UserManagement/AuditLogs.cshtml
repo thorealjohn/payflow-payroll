@@ -61,9 +61,11 @@
                     <th class="px-4">Timestamp</th>
                     <th class="px-4">User</th>
                     <th class="px-4">Action</th>
-                    <th class="px-4">Entity</th>
+                    <th class="px-4">Resource / Target</th>
                     <th class="px-4">Log Type</th>
                     <th class="px-4">IP Address</th>
+                    <th class="px-4">Device</th>
+                    <th class="px-4">Metadata</th>
                 </tr>
             </thead>
 
@@ -80,7 +82,13 @@
                             </span>
                         </td>
 
-                        <td class="px-4">@log.Entity</td>
+                        <td class="px-4">
+                            <div>@log.Entity / @log.Resource</div>
+                            @if (!string.IsNullOrWhiteSpace(log.TargetId))
+                            {
+                                <small class="text-muted">Target: @log.TargetId</small>
+                            }
+                        </td>
 
                         <td class="px-4">
                             <span class="badge @(log.LogType == LogType.Security ? "bg-warning" : "bg-info")">
@@ -89,13 +97,31 @@
                         </td>
 
                         <td class="px-4">@log.IpAddress</td>
+                        <td class="px-4">
+                            <div>@(log.Browser ?? "Unknown")</div>
+                            <small class="text-muted">@(log.OperatingSystem ?? "Unknown")</small>
+                        </td>
+                        <td class="px-4">
+                            @if (!string.IsNullOrWhiteSpace(log.Metadata))
+                            {
+                                <details>
+                                    <summary class="small text-success">View</summary>
+                                    <pre class="small mb-0 text-wrap">@log.Metadata</pre>
+                                    <small class="text-muted d-block">Req: @log.RequestId</small>
+                                </details>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
                     </tr>
                 }
 
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="6">
+                        <td colspan="8">
                             <div class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1"></i>
                                 <p class="mt-2 mb-0">No audit logs found</p>

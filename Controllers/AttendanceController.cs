@@ -4,7 +4,9 @@ using itpayroll.Models;
 using itpayroll.Services;
 using itpayroll.Utilities;
 using itpayroll.ViewModels;
+using itpayroll.Areas.Identity.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +18,37 @@ namespace itpayroll.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AttendanceService _attendanceService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AttendanceController(ApplicationDbContext context, AttendanceService attendanceService)
+        public AttendanceController(ApplicationDbContext context, AttendanceService attendanceService, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _attendanceService = attendanceService;
+            _userManager = userManager;
+        }
+
+        private async Task<Shift?> GetCurrentShiftForEmployee(int employeeId)
+        {
+            var today = DateTime.Today;
+
+            // 1. Check shift assignment first
+            var assignment = await _context.EmployeeShiftAssignments
+                .Include(a => a.Shift)
+                .Where(a => a.EmployeeId == employeeId
+                    && a.DateFrom <= today
+                    && (a.DateTo == null || a.DateTo >= today))
+                .Select(a => a.Shift)
+                .FirstOrDefaultAsync();
+
+            if (assignment != null)
+                return assignment;
+
+            // 2. Fallback to default shift (from Employee)
+            var employee = await _context.Employees
+                .Include(e => e.Shift)
+                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+
+            return employee?.Shift;
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
@@ -116,9 +144,9 @@ namespace itpayroll.Controllers
                 attendance.UndertimeMinutes = undertimeMinutes;
             }
 
-            // Calculate night shift hours (10pm-6am)
+            // Calculate night shift hours
             attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
-                model.TimeIn, model.TimeOut, model.Date.Date);
+                model.TimeIn, model.TimeOut, employee?.Shift, model.Date.Date);
 
             // Set day type
             attendance.DayType = model.DayType;
@@ -197,7 +225,7 @@ namespace itpayroll.Controllers
 
             // Recalculate night shift hours
             attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
-                model.TimeIn, model.TimeOut, attendance.Date);
+                model.TimeIn, model.TimeOut, employee?.Shift, attendance.Date);
 
             // Update day type
             attendance.DayType = model.DayType;
@@ -250,8 +278,12 @@ namespace itpayroll.Controllers
         [Authorize(Roles = $"{Roles.Employee}")]
         public async Task<IActionResult> MyAttendance(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
             var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.UserId == User.Identity.Name);
+                .FirstOrDefaultAsync(e => e.UserId == user.Id);
 
             if (employee == null)
             {
@@ -288,6 +320,106 @@ namespace itpayroll.Controllers
         private bool AttendanceExists(int id)
         {
             return _context.Attendances.Any(a => a.AttendanceId == id);
+        }
+
+        private async Task<Employee?> GetCurrentEmployee()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var userId = user?.Id;
+            return await _context.Employees
+                .Include(e => e.Shift)
+                .FirstOrDefaultAsync(e => e.UserId == userId);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.Employee}")]
+        public async Task<IActionResult> TimeIn()
+        {
+            var employee = await GetCurrentEmployee();
+            if (employee == null)
+            {
+                TempData["Error"] = "Employee profile not found.";
+                return RedirectToAction(nameof(MyAttendance));
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var existing = await _context.Attendances
+                .AnyAsync(a => a.EmployeeId == employee.EmployeeId && a.Date == today);
+
+            if (existing)
+            {
+                TempData["Error"] = "You already timed in today.";
+                return RedirectToAction(nameof(MyAttendance));
+            }
+
+             var now = DateTime.UtcNow;
+             var shift = await GetCurrentShiftForEmployee(employee.EmployeeId);
+             var attendance = new Attendance
+             {
+                 EmployeeId = employee.EmployeeId,
+                 Date = today,
+                 TimeIn = new TimeSpan(now.Hour, now.Minute, now.Second),
+                 ShiftId = shift?.ShiftId,
+                 CreatedDate = DateTime.UtcNow
+             };
+
+            _context.Attendances.Add(attendance);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Time In recorded successfully.";
+            return RedirectToAction(nameof(MyAttendance));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.Employee}")]
+        public async Task<IActionResult> TimeOut()
+        {
+            var employee = await GetCurrentEmployee();
+            if (employee == null)
+            {
+                TempData["Error"] = "Employee profile not found.";
+                return RedirectToAction(nameof(MyAttendance));
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var attendance = await _context.Attendances
+                .FirstOrDefaultAsync(a => a.EmployeeId == employee.EmployeeId && a.Date == today);
+
+            if (attendance == null)
+            {
+                TempData["Error"] = "No Time In record found for today.";
+                return RedirectToAction(nameof(MyAttendance));
+            }
+
+            if (attendance.TimeOut != default)
+            {
+                TempData["Error"] = "You already timed out today.";
+                return RedirectToAction(nameof(MyAttendance));
+            }
+
+            var now = DateTime.UtcNow;
+            attendance.TimeOut = new TimeSpan(now.Hour, now.Minute, now.Second);
+            attendance.TotalHours = (attendance.TimeOut - attendance.TimeIn).TotalHours;
+
+             // Calculate late/undertime if shift exists
+             var shift = await GetCurrentShiftForEmployee(employee.EmployeeId);
+             if (shift != null)
+             {
+                 var (lateMinutes, undertimeMinutes) = _attendanceService.CalculateLateAndUndertime(
+                     attendance.TimeIn, attendance.TimeOut, shift, today);
+                 attendance.LateMinutes = lateMinutes;
+                 attendance.UndertimeMinutes = undertimeMinutes;
+             }
+
+             attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
+                 attendance.TimeIn, attendance.TimeOut, shift, today);
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Time Out recorded successfully.";
+            return RedirectToAction(nameof(MyAttendance));
         }
 
         private async Task PopulateEmployeeDropdown()

@@ -1,0 +1,69 @@
+@model List<itpayroll.Models.Overtime>
+
+@{
+    ViewData["Title"] = "My Overtime";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">My Overtime</h4>
+        <small class="text-muted">View and manage your overtime requests</small>
+    </div>
+    <a asp-action="Create" class="btn btn-success">+ Request Overtime</a>
+</div>
+
+@await Html.PartialAsync("_PeriodSelector")
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="px-4">Date</th>
+                    <th class="px-4">Hours</th>
+                    <th class="px-4">Reason</th>
+                    <th class="px-4">Status</th>
+                    <th class="text-end px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td class="px-4">@o.Date.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4">@o.Hours</td>
+                        <td class="px-4">@o.Reason</td>
+                        <td class="px-4">
+                            @if (o.Status == itpayroll.Models.OvertimeStatus.Pending)
+                            {
+                                <span class="badge bg-warning">Pending</span>
+                            }
+                            else if (o.Status == itpayroll.Models.OvertimeStatus.Approved)
+                            {
+                                <span class="badge bg-success">Approved</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Rejected</span>
+                            }
+                        </td>
+                        <td class="text-end px-4">
+                            @if (o.Status == itpayroll.Models.OvertimeStatus.Pending)
+                            {
+                                <form asp-action="Cancel" asp-route-id="@o.OvertimeId" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this overtime request?')">Cancel</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No overtime requests found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
