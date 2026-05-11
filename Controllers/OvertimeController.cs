@@ -25,7 +25,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(string searchString, string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> Index(string searchString, string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -47,9 +47,10 @@ namespace itpayroll.Controllers
             if (!string.IsNullOrEmpty(searchString))
             {
                 overtimes = overtimes.Where(o =>
-                    o.Employee.User.FirstName.Contains(searchString) ||
+                    o.Employee.User != null &&
+                    (o.Employee.User.FirstName.Contains(searchString) ||
                     o.Employee.User.LastName.Contains(searchString) ||
-                    o.Employee.EmployeeNumber.Contains(searchString));
+                    o.Employee.EmployeeNumber.Contains(searchString)));
             }
 
             ViewBag.CurrentFilter = searchString;
@@ -214,7 +215,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyOvertime(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> MyOvertime(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
         {
             var user = await _userManager.GetUserAsync(User);
             var userId = user?.Id;
@@ -340,11 +341,11 @@ namespace itpayroll.Controllers
         {
             var employees = await _context.Employees
                 .Include(e => e.User)
-                .Where(e => e.Status == EmploymentStatus.Active)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
                 .Select(e => new SelectListItem
                 {
                     Value = e.EmployeeId.ToString(),
-                    Text = $"{e.EmployeeNumber} - {e.User.FirstName} {e.User.LastName}"
+                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
                 })
                 .ToListAsync();
 

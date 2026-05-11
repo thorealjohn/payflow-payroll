@@ -25,6 +25,7 @@ out/
 # APP SETTINGS (SECRETS)
 
 appsettings.Development.json
+appsettings.Production.json
 app.db
 
 # OS FILES
@@ -35,3 +36,7 @@ Thumbs.db
 node_modules/
 
 wwwroot/uploads/
+
+web.config
+
+Properties/PublishProfiles/

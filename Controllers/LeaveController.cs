@@ -27,7 +27,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(LeaveStatus? status, string? searchString = null, string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> Index(LeaveStatus? status, string? searchString = null, string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -55,9 +55,10 @@ namespace itpayroll.Controllers
             if (!string.IsNullOrEmpty(searchString))
             {
                 query = query.Where(l =>
-                    l.Employee.User.FirstName.Contains(searchString) ||
+                    l.Employee.User != null &&
+                    (l.Employee.User.FirstName.Contains(searchString) ||
                     l.Employee.User.LastName.Contains(searchString) ||
-                    l.Employee.EmployeeNumber.Contains(searchString));
+                    l.Employee.EmployeeNumber.Contains(searchString)));
             }
 
             ViewBag.CurrentFilter = searchString;
@@ -74,7 +75,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyLeaves(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> MyLeaves(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
         {
             var user = await _userManager.GetUserAsync(User);
             var userId = user?.Id;

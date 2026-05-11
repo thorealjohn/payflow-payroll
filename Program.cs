@@ -1,3 +1,4 @@
+using itpayroll;
 using itpayroll.Areas.Identity.Data;
 using itpayroll.Data;
 using itpayroll.Filters;
@@ -9,8 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure();
+    }));
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure();
+    }));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>()
@@ -83,25 +92,44 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
 builder.Services.AddScoped<AuditService>();
 
+builder.Services.Configure<BrandingOptions>(builder.Configuration.GetSection(BrandingOptions.SectionName));
+builder.Services.PostConfigure<BrandingOptions>(o =>
+{
+    if (string.IsNullOrWhiteSpace(o.LogoPath))
+        o.LogoPath = "~/images/logo.jpg";
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
 
-    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    try
+    {
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await SeedData.InitializeAsync(userManager, roleManager, builder.Configuration, context);
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    var auditRetentionDays = builder.Configuration.GetValue<int?>("Audit:RetentionDays") ?? 90;
-    var auditService = services.GetRequiredService<AuditService>();
-    await auditService.PruneAsync(auditRetentionDays);
+        await context.Database.MigrateAsync();
+
+        await SeedData.InitializeAsync(userManager, roleManager, builder.Configuration, context, app.Environment);
+
+        var auditRetentionDays = builder.Configuration.GetValue<int?>("Audit:RetentionDays") ?? 90;
+        var auditService = services.GetRequiredService<AuditService>();
+        await auditService.PruneAsync(auditRetentionDays);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred during application startup. Database migration, seeding, or audit pruning failed.");
+        throw;
+    }
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+/*if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
 }
@@ -110,7 +138,10 @@ else
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
-}
+}*/
+
+app.UseDeveloperExceptionPage();
+app.UseMigrationsEndPoint();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

@@ -1,3 +1,4 @@
+using System;
 using itpayroll.Data;
 using itpayroll.Services;
 using itpayroll.Areas.Identity.Data;
@@ -23,6 +24,8 @@ namespace itpayroll.Controllers
         public async Task<IActionResult> GetUnreadCount()
         {
             var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Json(new { count = 0 });
             var count = await _notificationService.GetUnreadCount(userId);
             return Json(new { count });
         }
@@ -31,6 +34,8 @@ namespace itpayroll.Controllers
         public async Task<IActionResult> GetRecent(int count = 5)
         {
             var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Json(Array.Empty<object>());
             var notifications = await _notificationService.GetUserNotifications(userId, count);
             return Json(notifications.Select(n => new
             {
@@ -55,7 +60,8 @@ namespace itpayroll.Controllers
         public async Task<IActionResult> MarkAllAsRead()
         {
             var userId = _userManager.GetUserId(User);
-            await _notificationService.MarkAllAsRead(userId);
+            if (!string.IsNullOrEmpty(userId))
+                await _notificationService.MarkAllAsRead(userId);
             return Json(new { success = true });
         }
     }

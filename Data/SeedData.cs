@@ -4,6 +4,7 @@ using itpayroll.Models;
 using itpayroll.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace itpayroll.Data
 {
@@ -13,7 +14,8 @@ namespace itpayroll.Data
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IConfiguration configuration,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IHostEnvironment hostEnvironment)
         {
             
             // ROLES
@@ -61,17 +63,30 @@ namespace itpayroll.Data
 
                 var result = await userManager.CreateAsync(superAdmin, superAdminPassword);
 
-                if (result.Succeeded)
+                if (!result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(superAdmin, Roles.SuperAdmin);
+                    var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                    throw new InvalidOperationException($"Failed to create SuperAdmin user: {errors}");
                 }
+
+                await userManager.AddToRoleAsync(superAdmin, Roles.SuperAdmin);
             }
             else
             {
-                // Ensure the existing user has the SuperAdmin role
                 if (!await userManager.IsInRoleAsync(existingUser, Roles.SuperAdmin))
                 {
                     await userManager.AddToRoleAsync(existingUser, Roles.SuperAdmin);
+                }
+
+                if (!await userManager.CheckPasswordAsync(existingUser, superAdminPassword))
+                {
+                    var token = await userManager.GeneratePasswordResetTokenAsync(existingUser);
+                    var resetResult = await userManager.ResetPasswordAsync(existingUser, token, superAdminPassword);
+                    if (!resetResult.Succeeded)
+                    {
+                        var errors = string.Join("; ", resetResult.Errors.Select(e => e.Description));
+                        throw new InvalidOperationException($"Failed to update SuperAdmin password: {errors}");
+                    }
                 }
             }
 
@@ -189,10 +204,14 @@ namespace itpayroll.Data
                 await context.SaveChangesAsync();
             }
 
-            // DEMO EMPLOYEES (end users: Identity + Employee row). Runs only when the Employees table is empty
-            // and SeedEmployees:Password is set (see appsettings.Development.json). Password must meet Identity policy.
+            // DEMO EMPLOYEES (end users: Identity + Employee row). Idempotent: creates any missing demo users.
+            // Password: SeedEmployees:Password, or in Development only defaults to EmployeeSeed123! if unset.
+            // Password must meet Identity policy (length 10+, upper, lower, digit, symbol).
             string? seedEmployeePassword = configuration["SeedEmployees:Password"];
-            if (!string.IsNullOrEmpty(seedEmployeePassword) && !await context.Employees.AnyAsync())
+            if (string.IsNullOrWhiteSpace(seedEmployeePassword) && hostEnvironment.IsDevelopment())
+                seedEmployeePassword = "EmployeeSeed123!";
+
+            if (!string.IsNullOrWhiteSpace(seedEmployeePassword))
             {
                 var companyDomain = configuration["CompanySettings:Domain"] ?? "payflow.com";
                 var shifts = await context.Shifts.OrderBy(s => s.ShiftId).ToListAsync();
@@ -375,12 +394,48 @@ namespace itpayroll.Data
                 foreach (var s in specs)
                 {
                     var email = $"{s.EmailLocal}@{companyDomain}";
-                    if (await userManager.FindByEmailAsync(email) != null)
+                    var hireDate = DateTime.UtcNow.AddMonths(-s.HireMonthsAgo).Date;
+                    var demoUser = await userManager.FindByEmailAsync(email);
+
+                    if (demoUser != null)
                     {
+                        if (!await userManager.IsInRoleAsync(demoUser, Roles.Employee))
+                            await userManager.AddToRoleAsync(demoUser, Roles.Employee);
+
+                        var hasEmployee = await context.Employees.AnyAsync(e => e.UserId == demoUser.Id);
+                        if (!hasEmployee)
+                        {
+                            var numberTaken = await context.Employees.AnyAsync(e => e.EmployeeNumber == s.EmployeeNumber);
+                            if (!numberTaken)
+                            {
+                                context.Employees.Add(new Employee
+                                {
+                                    UserId = demoUser.Id,
+                                    EmployeeNumber = s.EmployeeNumber,
+                                    Status = EmploymentStatus.Active,
+                                    BasicSalary = s.BasicSalary,
+                                    HireDate = hireDate,
+                                    ShiftId = ShiftIdAt(s.ShiftIndex),
+                                    Department = s.Department,
+                                    Position = s.Position,
+                                    EmploymentType = s.EmploymentType,
+                                    SalaryType = SalaryType.Monthly,
+                                    PayFrequency = s.PayFrequency,
+                                    BankName = s.BankName,
+                                    BankAccountNumber = s.BankAccountNumber,
+                                    TIN = s.Tin,
+                                    SSSNumber = s.Sss,
+                                    PhilHealthNumber = s.PhilHealth,
+                                    PagIBIGNumber = s.PagIbig,
+                                    CreatedBy = "SeedData",
+                                    CreatedDate = DateTime.UtcNow
+                                });
+                            }
+                        }
+
                         continue;
                     }
 
-                    var hireDate = DateTime.UtcNow.AddMonths(-s.HireMonthsAgo).Date;
                     var user = new ApplicationUser
                     {
                         UserName = email,
@@ -467,7 +522,8 @@ namespace itpayroll.Data
             if (seeded.Count == 0)
                 return;
 
-            if (await context.Attendances.AnyAsync(a => a.EmployeeId == seeded[0].EmployeeId))
+            var anchorEmployee = seeded.FirstOrDefault(e => e.EmployeeNumber == "EMP-2025-001") ?? seeded[0];
+            if (await context.Attendances.AnyAsync(a => a.EmployeeId == anchorEmployee.EmployeeId))
                 return;
 
             var attendanceService = new AttendanceService(context);
@@ -644,13 +700,13 @@ namespace itpayroll.Data
                 if (daySeed % 9 == 0)
                     timeIn = timeIn.Add(TimeSpan.FromMinutes(12));
 
-                timeOut = new TimeSpan(1, shift.EndTime.Hours, shift.EndTime.Minutes, shift.EndTime.Seconds);
-                totalHours = (timeOut - timeIn).TotalHours;
+                timeOut = shift.EndTime;
+                totalHours = (TimeSpan.FromHours(24) - timeIn + timeOut).TotalHours;
                 if (daySeed % 7 == 0)
                 {
                     timeOut = timeOut.Add(TimeSpan.FromMinutes(45));
                     otHours = 0.75;
-                    totalHours = (timeOut - timeIn).TotalHours;
+                    totalHours = (TimeSpan.FromHours(24) - timeIn + timeOut).TotalHours;
                 }
             }
             else if (shift != null)

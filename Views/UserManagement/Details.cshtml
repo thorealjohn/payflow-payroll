@@ -49,7 +49,7 @@
 
 @if (ViewBag.Employee != null)
 {
-    var employee = ViewBag.Employee as itpayroll.Models.Employee;
+    var employee = (itpayroll.Models.Employee)ViewBag.Employee!;
     <div class="card mt-3">
         <div class="card-header">
             <h5 class="mb-0">Employee Information</h5>

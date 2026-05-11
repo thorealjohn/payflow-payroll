@@ -14,7 +14,7 @@ namespace itpayroll.Utilities
 
     public static class PeriodHelper
     {
-        public static (DateTime? From, DateTime? To) GetDateRange(string period, string customFrom, string customTo)
+        public static (DateTime? From, DateTime? To) GetDateRange(string period, string? customFrom, string? customTo)
         {
             return period switch
             {

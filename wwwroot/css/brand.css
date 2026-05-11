@@ -33,3 +33,8 @@
   --pf-emerald-400: #4ade80;
   --pf-emerald-300: #86efac;
 }
+
+/* Logo file from wwwroot — path: appsettings Branding:LogoPath */
+.app-brand-logo {
+  object-fit: contain;
+}

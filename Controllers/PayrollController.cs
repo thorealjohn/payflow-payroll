@@ -49,9 +49,11 @@ namespace itpayroll.Controllers
 
             if (!string.IsNullOrEmpty(searchString))
             {
-                payrolls = payrolls.Where(p => !(!p.Employee.User.FirstName.Contains(searchString) &&
-!p.Employee.User.LastName.Contains(searchString) &&
-!p.Employee.EmployeeNumber.Contains(searchString)));
+                payrolls = payrolls.Where(p =>
+                    p.Employee.User != null &&
+                    (p.Employee.User.FirstName.Contains(searchString) ||
+                     p.Employee.User.LastName.Contains(searchString) ||
+                     p.Employee.EmployeeNumber.Contains(searchString)));
 
                 if (!string.IsNullOrEmpty(status))
                 {
@@ -324,11 +326,11 @@ namespace itpayroll.Controllers
         {
             var employees = await _context.Employees
                 .Include(e => e.User)
-                .Where(e => e.Status == EmploymentStatus.Active)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
                 .Select(e => new SelectListItem
                 {
                     Value = e.EmployeeId.ToString(),
-                    Text = $"{e.EmployeeNumber} - {e.User.FirstName} {e.User.LastName}"
+                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
                 })
                 .ToListAsync();
 

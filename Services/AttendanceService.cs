@@ -75,7 +75,7 @@ namespace itpayroll.Services
             return (lateMinutes, undertimeMinutes);
         }
 
-        public double CalculateNightShiftHours(TimeSpan timeIn, TimeSpan timeOut, Shift shift, DateTime date)
+        public double CalculateNightShiftHours(TimeSpan timeIn, TimeSpan timeOut, Shift? shift, DateTime date)
         {
             if (shift == null) return 0;
 

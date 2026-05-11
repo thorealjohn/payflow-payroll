@@ -7,6 +7,10 @@
     <UserSecretsId>aspnet-itpayroll-abf9fde7-0578-4fc5-a5be-90385e7eadb0</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="appsettings.Development.json" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="DinkToPdf" Version="1.0.8" />

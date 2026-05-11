@@ -12,7 +12,8 @@ namespace itpayroll.Filters
             var path = context.HttpContext.Request.Path.Value?.ToLower();
 
             // Skip for auth pages, static files, and error pages
-            if (path.Contains("changepassword") ||
+            if (string.IsNullOrEmpty(path) ||
+                path.Contains("changepassword") ||
                 path.Contains("login") ||
                 path.Contains("logout") ||
                 path.Contains("register") ||

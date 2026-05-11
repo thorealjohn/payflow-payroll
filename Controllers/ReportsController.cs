@@ -138,11 +138,11 @@ namespace itpayroll.Controllers
             ViewBag.PayrollStatuses = Enum.GetNames(typeof(PayrollStatus)).ToList();
             ViewBag.Employees = await _context.Employees
                 .Include(e => e.User)
-                .Where(e => e.Status == EmploymentStatus.Active)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
                 .Select(e => new SelectListItem
                 {
                     Value = e.EmployeeId.ToString(),
-                    Text = $"{e.EmployeeNumber} - {e.User.FirstName} {e.User.LastName}"
+                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
                 }).ToListAsync();
             ViewBag.Departments = await _context.Employees
                 .Where(e => !string.IsNullOrWhiteSpace(e.Department))
@@ -256,17 +256,17 @@ namespace itpayroll.Controllers
             var attendanceRate = activeEmployees == 0 ? 0 : (presentEmployees * 100.0 / activeEmployees);
 
             var mostLateEmployee = await query
-                .GroupBy(a => new { a.EmployeeId, Name = (a.Employee.User.FirstName + " " + a.Employee.User.LastName) })
+                .GroupBy(a => new { a.EmployeeId, Name = a.Employee.User == null ? "" : (a.Employee.User.FirstName + " " + a.Employee.User.LastName) })
                 .Select(g => new { g.Key.Name, Late = g.Sum(x => x.LateMinutes) })
                 .OrderByDescending(x => x.Late)
                 .FirstOrDefaultAsync();
             var mostOvertimeEmployee = await query
-                .GroupBy(a => new { a.EmployeeId, Name = (a.Employee.User.FirstName + " " + a.Employee.User.LastName) })
+                .GroupBy(a => new { a.EmployeeId, Name = a.Employee.User == null ? "" : (a.Employee.User.FirstName + " " + a.Employee.User.LastName) })
                 .Select(g => new { g.Key.Name, OT = g.Sum(x => x.OvertimeHours) })
                 .OrderByDescending(x => x.OT)
                 .FirstOrDefaultAsync();
             var highestAttendanceRateEmployee = await query
-                .GroupBy(a => new { a.EmployeeId, Name = (a.Employee.User.FirstName + " " + a.Employee.User.LastName) })
+                .GroupBy(a => new { a.EmployeeId, Name = a.Employee.User == null ? "" : (a.Employee.User.FirstName + " " + a.Employee.User.LastName) })
                 .Select(g => new { g.Key.Name, Days = g.Count() })
                 .OrderByDescending(x => x.Days)
                 .FirstOrDefaultAsync();
@@ -309,11 +309,11 @@ namespace itpayroll.Controllers
             ViewBag.HighestAttendanceEmployee = highestAttendanceRateEmployee?.Name ?? "N/A";
             ViewBag.Employees = await _context.Employees
                 .Include(e => e.User)
-                .Where(e => e.Status == EmploymentStatus.Active)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
                 .Select(e => new SelectListItem
                 {
                     Value = e.EmployeeId.ToString(),
-                    Text = $"{e.EmployeeNumber} - {e.User.FirstName} {e.User.LastName}"
+                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
                 }).ToListAsync();
             ViewBag.Shifts = await _context.Shifts
                 .Where(s => s.IsActive)
@@ -409,7 +409,7 @@ namespace itpayroll.Controllers
                     (e.User != null && (
                         e.User.FirstName.Contains(search) ||
                         e.User.LastName.Contains(search) ||
-                        e.User.Email.Contains(search))));
+                        (e.User.Email != null && e.User.Email.Contains(search)))));
             }
             if (!string.IsNullOrWhiteSpace(department))
             {

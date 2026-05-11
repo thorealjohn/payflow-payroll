@@ -26,7 +26,7 @@ namespace itpayroll.Controllers
             _hostingEnvironment = hostingEnvironment;
         }
 
-        public async Task<IActionResult> Index(string period = "ThisMonth", string customDateFrom = null, string customDateTo = null)
+        public async Task<IActionResult> Index(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -171,9 +171,9 @@ namespace itpayroll.Controllers
                 var incompleteAttendanceEmployee = await _context.Attendances
                     .Include(a => a.Employee)
                     .ThenInclude(e => e.User)
-                    .Where(a => a.Date == DateTime.Today && (a.TimeOut == default || a.TimeOut <= a.TimeIn))
+                    .Where(a => a.Date == DateTime.Today && (a.TimeOut == default || a.TimeOut <= a.TimeIn) && a.Employee.User != null)
                     .OrderByDescending(a => a.TimeIn)
-                    .Select(a => a.Employee.User.FirstName + " " + a.Employee.User.LastName)
+                    .Select(a => a.Employee.User!.FirstName + " " + a.Employee.User.LastName)
                     .FirstOrDefaultAsync();
 
                 var upcomingPayrollDate = await _context.Payrolls

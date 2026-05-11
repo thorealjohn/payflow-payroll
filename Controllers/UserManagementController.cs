@@ -52,7 +52,7 @@ namespace itpayroll.Controllers
                 query = query.Where(u =>
                     u.FirstName.Contains(searchString) ||
                     u.LastName.Contains(searchString) ||
-                    u.Email.Contains(searchString));
+                    (u.Email != null && u.Email.Contains(searchString)));
             }
 
             // Role filter - materialize first to avoid concurrency         
@@ -103,7 +103,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Create()
+        public IActionResult Create()
         {
             var currentRole = GetCurrentUserRole();
             var allowedRoles = RoleHierarchy.GetAllowedRoles(currentRole);

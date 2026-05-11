@@ -30,7 +30,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
             _context = context;
         }
 
-        public async Task<IActionResult> OnPost(string returnUrl = null)
+        public async Task<IActionResult> OnPost(string? returnUrl = null)
         {
             var userId = _userManager.GetUserId(User);
 
