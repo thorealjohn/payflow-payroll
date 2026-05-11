@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using itpayroll.Services;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace itpayroll.Controllers
 {
@@ -101,7 +102,7 @@ namespace itpayroll.Controllers
                 CreatedDate = DateTime.UtcNow,
                 IsActive = true,
                 MustChangePassword = true,
-                PasswordLastChanged = DateTime.UtcNow
+                PasswordLastChanged = DateTime.UtcNow 
             };
 
             // 4. Generate temp password
@@ -354,17 +355,36 @@ namespace itpayroll.Controllers
             return $"EMP-{nextNumber:D4}";
         }
 
+        /// <summary>
+        /// Builds a safe email local-part segment from a name. Spaces and other characters
+        /// invalid in email addresses are removed so compound first names (e.g. "John Andrew") work.
+        /// </summary>
+        private static string ToEmailLocalSegment(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "user";
+
+            var trimmed = name.Trim().ToLowerInvariant();
+            // No spaces (or other whitespace) in the local part of an email
+            var collapsed = Regex.Replace(trimmed, @"\s+", "");
+            // Allow only typical safe local-part characters
+            var cleaned = Regex.Replace(collapsed, @"[^a-z0-9._-]", "");
+            return string.IsNullOrEmpty(cleaned) ? "user" : cleaned;
+        }
+
         private async Task<string> GenerateUniqueEmail(string firstName, string lastName, string domain)
         {
-            var baseEmail = $"{firstName.ToLower().Trim()}.{lastName.ToLower().Trim()}@{domain}";
-            var email = baseEmail;
-            int counter = 0;
+            var first = ToEmailLocalSegment(firstName);
+            var last = ToEmailLocalSegment(lastName);
+            var email = $"{first}.{last}@{domain}";
+            var counter = 0;
 
             while (await _userManager.FindByEmailAsync(email) != null)
             {
                 counter++;
-                email = $"{firstName.ToLower().Trim()}{counter}@{domain}";
+                email = $"{first}.{last}{counter}@{domain}";
             }
+
             return email;
         }
         #endregion
