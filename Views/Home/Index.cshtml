@@ -1,39 +1,12 @@
-﻿ @{
+﻿@{
     Layout = "_Layout";
     ViewData["Title"] = "Home Page";
 }
 
-<style>
-    .hero {
-        background: linear-gradient(to right, #16a34a, #15803d);
-        color: white;
-        padding: 80px 0;
-        border-radius: 12px;
-    }
-
-    .feature-card {
-        border: none;
-        border-radius: 12px;
-        transition: 0.3s;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-    .feature-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-
-    .cta {
-        background-color: #f8fafc;
-        padding: 60px 0;
-        border-radius: 12px;
-    }
-</style>
-
-<div class="container mt-5">
+<div class="container mt-5 pf-home">
 
     <!-- HERO -->
-    <div class="hero text-center">
+    <div class="pf-home-hero text-center">
 
         <h1 class="display-5 fw-bold">PayFlow Payroll System</h1>
         <p class="lead">Streamline payroll, attendance, and government deductions with ease.</p>
@@ -46,25 +19,25 @@
     <!-- FEATURES -->
     <div class="row mt-5 text-center">
         <div class="col-md-3">
-            <div class="card feature-card p-4">
+            <div class="card pf-home-feature-card p-4">
                 <h5>Employees</h5>
                 <p class="text-muted">Manage employee records efficiently.</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card feature-card p-4">
+            <div class="card pf-home-feature-card p-4">
                 <h5>Attendance</h5>
                 <p class="text-muted">Track work hours and attendance.</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card feature-card p-4">
+            <div class="card pf-home-feature-card p-4">
                 <h5>Payroll</h5>
                 <p class="text-muted">Automate salary calculations.</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card feature-card p-4">
+            <div class="card pf-home-feature-card p-4">
                 <h5>Deductions</h5>
                 <p class="text-muted">Handle SSS, PhilHealth, Pag-IBIG.</p>
             </div>
@@ -72,7 +45,7 @@
     </div>
 
     <!-- CTA -->
-    <div class="cta text-center mt-5">
+    <div class="pf-home-cta text-center mt-5">
         <h3 class="fw-bold">Start managing your payroll today</h3>
         <p class="text-muted">Simple. Efficient. Reliable.</p>
 

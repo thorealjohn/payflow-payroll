@@ -12,50 +12,45 @@
     <div class="row g-3 mb-4">
 
         <div class="col-md-3">
-            <div class="card kpi-card">
-                <div class="kpi-label">Total Employees</div>
-                <div class="kpi-value">@ViewBag.TotalEmployees</div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card kpi-card">
-                <div class="kpi-label">Today's Attendance</div>
-                <div class="kpi-value">@ViewBag.TodayAttendance</div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card kpi-card">
-                <div class="kpi-label">Total Payrolls</div>
-                <div class="kpi-value">@ViewBag.TotalPayrolls</div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card kpi-card">
-                <div class="kpi-label">Pending Release</div>
-                <div class="kpi-value">@ViewBag.PendingPayrolls</div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Total Net Pay Released</h5>
-                </div>
+            <div class="card kpi-card dashboard-accent-kpi kpi-employees h-100">
                 <div class="card-body">
-                    <h2 class="text-success">₱@(((decimal)ViewBag.TotalPayrollAmount).ToString("N2"))</h2>
+                    <div class="kpi-label"><i class="fas fa-users me-2"></i>Total Employees</div>
+                    <div class="kpi-value mt-2">@ViewBag.TotalEmployees</div>
                 </div>
             </div>
         </div>
+
+        <div class="col-md-3">
+            <div class="card kpi-card dashboard-accent-kpi kpi-attendance h-100">
+                <div class="card-body">
+                    <div class="kpi-label"><i class="fas fa-user-check me-2"></i>Employees Present Today</div>
+                    <div class="kpi-value mt-2">@ViewBag.TodayAttendance</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card kpi-card dashboard-accent-kpi kpi-alert h-100">
+                <div class="card-body">
+                    <div class="kpi-label"><i class="fas fa-hourglass-half me-2"></i>Pending Payrolls</div>
+                    <div class="kpi-value mt-2">@ViewBag.PendingPayrolls</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card kpi-card dashboard-accent-kpi kpi-finance h-100">
+                <div class="card-body">
+                    <div class="kpi-label"><i class="fas fa-coins me-2"></i>Monthly Payroll Expense</div>
+                    <div class="kpi-value mt-2">₱@(((decimal)ViewBag.MonthlyPayrollExpense).ToString("N2"))</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-lg-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Payrolls</h5>
@@ -66,23 +61,32 @@
                         <thead>
                             <tr>
                                 <th>Employee</th>
+                                <th>Pay Period</th>
                                 <th>Net Pay</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var p in (List<itpayroll.Models.Payroll>)ViewBag.RecentPayrolls)
                             {
-                                var badgeClass = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : p.Status == itpayroll.Models.PayrollStatus.Processed ? "bg-primary" : "bg-secondary";
+                                var badgeClass = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" :
+                                    p.Status == itpayroll.Models.PayrollStatus.Processed ? "text-dark bg-warning" : "bg-secondary";
                                 <tr>
                                     <td>@p.Employee.User?.FirstName @p.Employee.User?.LastName</td>
+                                    <td>@p.PeriodStart.ToString("MMM d") - @p.PeriodEnd.ToString("MMM d")</td>
                                     <td>₱@p.NetPay.ToString("N2")</td>
                                     <td><span class="badge @badgeClass">@p.Status</span></td>
+                                    <td>
+                                        <a asp-controller="Payroll" asp-action="Details" asp-route-id="@p.PayrollId" class="btn btn-sm btn-outline-info">
+                                            View Payslip
+                                        </a>
+                                    </td>
                                 </tr>
                             }
                             @if (!((List<itpayroll.Models.Payroll>)ViewBag.RecentPayrolls).Any())
                             {
-                                <tr><td colspan="3" class="text-center text-muted">No payroll records yet.</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted">No payroll records yet.</td></tr>
                             }
                         </tbody>
                     </table>
@@ -90,70 +94,104 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Attendance</h5>
-                    <a asp-controller="Attendance" asp-action="Index" class="small text-success fw-semibold">View All</a>
+                    <h5 class="mb-0">Operational Alerts</h5>
+                    <span class="badge bg-danger-subtle text-danger-emphasis">@((int)ViewBag.PendingPayrolls + (int)ViewBag.OpenAttendanceCount)</span>
                 </div>
                 <div class="card-body">
-                    <table class="table table-borderless table-sm">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Date</th>
-                                <th>Hours</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var a in (List<itpayroll.Models.Attendance>)ViewBag.RecentAttendances)
-                            {
-                                <tr>
-                                    <td>@a.Employee.User?.FirstName @a.Employee.User?.LastName</td>
-                                    <td>@a.Date.ToString("MMM dd")</td>
-                                    <td>@a.TotalHours.ToString("N2") hrs</td>
-                                </tr>
-                            }
-                            @if (!((List<itpayroll.Models.Attendance>)ViewBag.RecentAttendances).Any())
-                            {
-                                <tr><td colspan="3" class="text-center text-muted">No attendance records yet.</td></tr>
-                            }
-                        </tbody>
-                    </table>
+                    <ul class="list-unstyled mb-0 small">
+                        @if (ViewBag.IncompleteAttendanceEmployee != null)
+                        {
+                            <li class="mb-2 d-flex align-items-start">
+                                <i class="fas fa-exclamation-triangle text-warning me-2 mt-1"></i>
+                                <span>@ViewBag.IncompleteAttendanceEmployee has incomplete attendance.</span>
+                            </li>
+                        }
+                        @if ((int)ViewBag.PendingPayrolls > 0)
+                        {
+                            <li class="mb-2 d-flex align-items-start">
+                                <i class="fas fa-file-signature text-danger me-2 mt-1"></i>
+                                <span>@ViewBag.PendingPayrolls pending payroll approval(s).</span>
+                            </li>
+                        }
+                        @if ((int)ViewBag.OpenAttendanceCount > 0)
+                        {
+                            <li class="mb-2 d-flex align-items-start">
+                                <i class="fas fa-user-clock text-primary me-2 mt-1"></i>
+                                <span>@ViewBag.OpenAttendanceCount employee(s) missing timeout today.</span>
+                            </li>
+                        }
+                        @if (ViewBag.IncompleteAttendanceEmployee == null && (int)ViewBag.PendingPayrolls == 0 && (int)ViewBag.OpenAttendanceCount == 0)
+                        {
+                            <li class="text-muted">No urgent operational alerts right now.</li>
+                        }
+                    </ul>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="col-md-4">
+    <div class="row mb-4">
+        <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Leave Statistics</h5>
+                    <h5 class="mb-0">Monthly Payroll Trend</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="leaveChart" style="max-height: 200px;"></canvas>
+                    @if ((bool)ViewBag.ShowPayrollChart)
+                    {
+                        <canvas id="payrollChart" style="max-height: 280px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-muted small mb-2">Not enough points for a trend chart yet. Showing latest monthly totals instead.</div>
+                        <table class="table table-sm table-borderless mb-0">
+                            <thead><tr><th>Month</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody id="payrollFallbackBody"></tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Upcoming Payroll Schedule</h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.UpcomingPayrollDate != null)
+                    {
+                        <div class="mb-2 text-muted small">Next Payroll Release</div>
+                        <div class="h4 mb-3">@(((DateTime)ViewBag.UpcomingPayrollDate).ToString("MMM dd, yyyy"))</div>
+                        <div class="small mb-2"><strong>Employees Included:</strong> @ViewBag.UpcomingPayrollEmployees</div>
+                        <div class="small"><strong>Estimated Total:</strong> ₱@(((decimal)ViewBag.UpcomingPayrollEstimate).ToString("N2"))</div>
+                    }
+                    else
+                    {
+                        <div class="text-muted small">No upcoming unreleased payroll schedule found.</div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Monthly Payroll Trends</h5>
+                    <h5 class="mb-0">Attendance Trend</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="payrollChart" style="max-height: 300px;"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Daily Attendance Trends (Last 30 Days)</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="attendanceChart" style="max-height: 300px;"></canvas>
+                    @if ((bool)ViewBag.ShowAttendanceChart)
+                    {
+                        <canvas id="attendanceChart" style="max-height: 260px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-muted small mb-2">Attendance trend appears once enough daily records are available.</div>
+                    }
                 </div>
             </div>
         </div>
@@ -162,72 +200,70 @@
     @section Scripts {
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            // Leave Statistics Chart
-            var leaveCtx = document.getElementById('leaveChart').getContext('2d');
-            var leaveData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.LeaveStats));
-            var leaveChart = new Chart(leaveCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: leaveData.map(x => x.Status),
-                    datasets: [{
-                        data: leaveData.map(x => x.Count),
-                        backgroundColor: ['#ffc107', '#28a745', '#dc3545', '#6c757d']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'bottom' }
-                    }
-                }
-            });
-
             // Payroll Trends Chart
-            var payrollCtx = document.getElementById('payrollChart').getContext('2d');
             var payrollData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MonthlyPayroll));
-            var payrollChart = new Chart(payrollCtx, {
-                type: 'line',
-                data: {
-                    labels: payrollData.map(x => x.Month),
-                    datasets: [{
-                        label: 'Total Net Pay',
-                        data: payrollData.map(x => x.Total),
-                        borderColor: '#0d6efd',
-                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: { beginAtZero: true }
+            var payrollCanvas = document.getElementById('payrollChart');
+            if (payrollCanvas) {
+                var payrollCtx = payrollCanvas.getContext('2d');
+                var payrollChart = new Chart(payrollCtx, {
+                    type: 'line',
+                    data: {
+                        labels: payrollData.map(x => x.Month),
+                        datasets: [{
+                            label: 'Total Net Pay',
+                            data: payrollData.map(x => x.Total),
+                            borderColor: '#7c3aed',
+                            backgroundColor: 'rgba(124, 58, 237, 0.12)',
+                            tension: 0.35,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
                     }
+                });
+            } else {
+                var fallbackBody = document.getElementById('payrollFallbackBody');
+                if (fallbackBody) {
+                    payrollData.slice(-6).forEach(function (item) {
+                        var row = document.createElement('tr');
+                        row.innerHTML = '<td>' + item.Month + '</td><td class="text-end">₱' + Number(item.Total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                        fallbackBody.appendChild(row);
+                    });
                 }
-            });
+            }
 
             // Attendance Trends Chart
-            var attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
             var attendanceData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.AttendanceTrend));
-            var attendanceChart = new Chart(attendanceCtx, {
-                type: 'bar',
-                data: {
-                    labels: attendanceData.map(x => new Date(x.Date).toLocaleDateString()),
-                    datasets: [{
-                        label: 'Attendance Count',
-                        data: attendanceData.map(x => x.Count),
-                        backgroundColor: '#198754'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: { beginAtZero: true }
+            var attendanceCanvas = document.getElementById('attendanceChart');
+            if (attendanceCanvas) {
+                var attendanceCtx = attendanceCanvas.getContext('2d');
+                var attendanceChart = new Chart(attendanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: attendanceData.map(x => new Date(x.Date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Attendance Count',
+                            data: attendanceData.map(x => x.Count),
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
                     }
-                }
-            });
+                });
+            }
         </script>
     }
 }
@@ -236,48 +272,52 @@ else
     var employee = ViewBag.Employee as itpayroll.Models.Employee;
     if (employee != null)
     {
-        // Summary Cards
+        // Summary Cards (green-first styling; status via text color)
         <div class="row g-3 mb-4">
-            @* Today's Attendance Card *@
+            @{
+                var todayStatus = ViewBag.TodayAttendanceStatus as string;
+                var statusTextClass = todayStatus == "Present" ? "text-success" :
+                    todayStatus == "Late" ? "text-warning" : "text-danger";
+                var latestNet = (decimal?)(ViewBag.LatestNetPay) ?? 0m;
+                var latestNetDisplay = ViewBag.LatestNetPay != null ? ("₱" + latestNet.ToString("N2")) : "—";
+            }
+
+            @* Today's Attendance *@
             <div class="col-md-3">
-                @{
-                    var todayStatus = ViewBag.TodayAttendanceStatus as string;
-                    var todayCardColor = todayStatus == "Present" ? "bg-success" : todayStatus == "Late" ? "bg-warning" : "bg-danger";
-                }
-                <div class="card @todayCardColor text-white">
+                <div class="card kpi-card dashboard-accent-kpi h-100">
                     <div class="card-body">
-                        <h5 class="card-title"><i class="fas fa-calendar-day me-2"></i>Today's Attendance</h5>
-                        <h2 class="display-6">@todayStatus</h2>
+                        <div class="kpi-label"><i class="fas fa-calendar-day me-2 text-success"></i>Today's Attendance</div>
+                        <div class="kpi-value mt-2 @statusTextClass">@todayStatus</div>
                     </div>
                 </div>
             </div>
 
-            @* This Month Hours Worked *@
+            @* This month hours *@
             <div class="col-md-3">
-                <div class="card bg-info text-white">
+                <div class="card kpi-card dashboard-accent-kpi h-100">
                     <div class="card-body">
-                        <h5 class="card-title"><i class="fas fa-clock me-2"></i>This Month Hours</h5>
-                        <h2 class="display-6">@((decimal)ViewBag.MonthHoursWorked) hrs</h2>
+                        <div class="kpi-label"><i class="fas fa-clock me-2 text-success"></i>This Month Hours</div>
+                        <div class="kpi-value mt-2">@(((decimal)ViewBag.MonthHoursWorked).ToString("N2")) hrs</div>
                     </div>
                 </div>
             </div>
 
-            @* Pending Requests *@
+            @* Pending requests *@
             <div class="col-md-3">
-                <div class="card bg-warning text-white">
+                <div class="card kpi-card dashboard-accent-kpi h-100">
                     <div class="card-body">
-                        <h5 class="card-title"><i class="fas fa-tasks me-2"></i>Pending Requests</h5>
-                        <h2 class="display-6">@ViewBag.PendingRequestsCount</h2>
+                        <div class="kpi-label"><i class="fas fa-tasks me-2 text-success"></i>Pending Requests</div>
+                        <div class="kpi-value mt-2">@ViewBag.PendingRequestsCount</div>
                     </div>
                 </div>
             </div>
 
-            @* Latest Net Pay *@
+            @* Latest net pay *@
             <div class="col-md-3">
-                <div class="card bg-primary text-white">
+                <div class="card kpi-card dashboard-accent-kpi h-100">
                     <div class="card-body">
-                        <h5 class="card-title"><i class="fas fa-money-bill me-2"></i>Latest Net Pay</h5>
-                        <h2 class="display-6">₱@((decimal?)ViewBag.LatestNetPay ?? 0).ToString("N2")</h2>
+                        <div class="kpi-label"><i class="fas fa-money-bill me-2 text-success"></i>Latest Net Pay</div>
+                        <div class="kpi-value mt-2">@latestNetDisplay</div>
                     </div>
                 </div>
             </div>
@@ -290,21 +330,21 @@ else
                     <div class="card-header">
                         <h5 class="mb-0">Quick Actions</h5>
                     </div>
-                    <div class="card-body d-flex gap-2">
+                    <div class="card-body d-flex flex-wrap gap-2">
                         <form asp-controller="Attendance" asp-action="TimeIn" method="post" style="display:inline;">
                             <button type="submit" class="btn btn-success" onclick="return confirm('Record Time In now?')">
                                 <i class="fas fa-sign-in-alt me-2"></i>Time In
                             </button>
                         </form>
                         <form asp-controller="Attendance" asp-action="TimeOut" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Record Time Out now?')">
+                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Record Time Out now?')">
                                 <i class="fas fa-sign-out-alt me-2"></i>Time Out
                             </button>
                         </form>
                         <a asp-controller="Overtime" asp-action="MyOvertime" class="btn btn-outline-success">
                             <i class="fas fa-business-time me-2"></i>Request Overtime
                         </a>
-                        <a asp-controller="Leave" asp-action="Create" class="btn btn-outline-info">
+                        <a asp-controller="Leave" asp-action="Create" class="btn btn-outline-success">
                             <i class="fas fa-file-medical me-2"></i>File Leave
                         </a>
                     </div>
@@ -332,7 +372,8 @@ else
                             <tbody>
                                 @foreach (var p in (List<itpayroll.Models.Payroll>)ViewBag.MyPayrolls)
                                 {
-                                    var badgeClass = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : "bg-primary";
+                                    var badgeClass = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" :
+                                        p.Status == itpayroll.Models.PayrollStatus.Processed ? "text-dark bg-warning" : "bg-secondary";
                                     <tr>
                                         <td>@p.PeriodStart.ToString("MMM dd") - @p.PeriodEnd.ToString("MMM dd")</td>
                                         <td>₱@p.NetPay.ToString("N2")</td>
@@ -367,10 +408,11 @@ else
                             <tbody>
                                 @foreach (var a in (List<itpayroll.Models.Attendance>)ViewBag.MyAttendance)
                                 {
+                                    var openShift = a.TimeOut == default || a.TimeOut <= a.TimeIn;
                                     <tr>
                                         <td>@a.Date.ToString("MMM dd")</td>
                                         <td>@a.TimeIn.ToString(@"hh\:mm")</td>
-                                        <td>@a.TotalHours.ToString("N2")</td>
+                                        <td>@(openShift ? "Open" : a.TotalHours.ToString("N2"))</td>
                                     </tr>
                                 }
                                 @if (!((List<itpayroll.Models.Attendance>)ViewBag.MyAttendance).Any())

@@ -1,0 +1,35 @@
+/* PayFlow green brand tokens — single source for public + dashboard shells */
+:root {
+  --pf-green-950: #14532d;
+  --pf-green-900: #052e16;
+  --pf-green-700: #15803d;
+  --pf-green-600: #16a34a;
+  --pf-accent: #198754;
+  --pf-accent-hover: #157347;
+  --pf-accent-active: #146c43;
+  --pf-link: #157347;
+  --pf-link-hover: #0f5132;
+  --pf-focus-ring: rgba(25, 135, 84, 0.35);
+  --pf-sidebar-gradient: linear-gradient(
+    180deg,
+    var(--pf-green-950),
+    var(--pf-green-900)
+  );
+  --pf-hero-gradient: linear-gradient(
+    to right,
+    var(--pf-green-600),
+    var(--pf-green-700)
+  );
+  --pf-radius: 12px;
+  --pf-radius-sm: 8px;
+  --pf-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --pf-shadow-hover: 0 10px 20px rgba(0, 0, 0, 0.1);
+  --pf-cta-bg: #f8fafc;
+  --pf-body-bg: #f8fafc;
+  --pf-font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  /* Dark accents (dashboard) */
+  --pf-emerald-500: #22c55e;
+  --pf-emerald-400: #4ade80;
+  --pf-emerald-300: #86efac;
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="PayFlow">
+  <defs>
+    <linearGradient id="pfMark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#052e16"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="10" fill="url(#pfMark)"/>
+  <path fill="#ffffff" d="M14 34V14h8.5c4.6 0 7.8 2.9 7.8 7.2 0 4.5-3.7 7.8-9 7.8H18.6V34H14zm4.6-12.9h4.1c2.4 0 3.9-1.4 3.9-3.6 0-2.1-1.5-3.5-3.9-3.5h-4.1v7.1z"/>
+</svg>

@@ -8,8 +8,12 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem #fff, 0 0 0 0.25rem var(--pf-focus-ring);
 }
 
 html {
@@ -19,32 +23,59 @@ html {
 
 body {
   margin-bottom: 60px;
+  font-family: var(--pf-font-sans);
 }
 
 .btn {
-    transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .btn:hover {
-    transform: translateY(-1px);
+  transform: translateY(-1px);
 }
 
 .btn-outline-success:hover {
-    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);
 }
 
 .btn {
-    text-decoration: none;
+  text-decoration: none;
 }
 
 .card {
-    border-radius: 12px;
+  border-radius: var(--pf-radius);
 }
 
 .form-control {
-    border-radius: 8px;
+  border-radius: var(--pf-radius-sm);
 }
 
 .btn {
-    border-radius: 8px;
+  border-radius: var(--pf-radius-sm);
+}
+
+/* Home (Views/Home/Index) — scoped to avoid collisions */
+.pf-home .pf-home-hero {
+  background: var(--pf-hero-gradient);
+  color: white;
+  padding: 80px 0;
+  border-radius: var(--pf-radius);
+}
+
+.pf-home .pf-home-feature-card {
+  border: none;
+  border-radius: var(--pf-radius);
+  transition: 0.3s;
+  box-shadow: var(--pf-shadow-sm);
+}
+
+.pf-home .pf-home-feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--pf-shadow-hover);
+}
+
+.pf-home .pf-home-cta {
+  background-color: var(--pf-cta-bg);
+  padding: 60px 0;
+  border-radius: var(--pf-radius);
 }

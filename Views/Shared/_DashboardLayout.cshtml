@@ -16,15 +16,17 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" asp-append-version="true" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/brand.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 </head>
 <body>
 
     <!-- Sidebar -->
     <div id="sidebar" class="sidebar">
-        <div class="text-center mb-4">
-            <span class="logo-full fw-bold fs-4">PayFlow</span>
-            <span class="logo-mini fw-bold">PF</span>
+        <div class="text-center mb-4 sidebar-brand">
+            <img src="~/images/logo.svg" alt="PayFlow" width="44" height="44" class="sidebar-logo mx-auto rounded-3 mb-2" />
+            <span class="logo-full fw-bold fs-4 text-white">PayFlow</span>
+            <span class="logo-mini fw-bold text-white">PF</span>
         </div>
         <a asp-controller="Dashboard" asp-action="Index" class="nav-link @(currentController == "Dashboard" ? "active" : "")">
             <i class="fas fa-chart-line"></i>

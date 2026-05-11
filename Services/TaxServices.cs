@@ -4,6 +4,9 @@
     {
         public decimal ComputeTax(decimal taxableIncome)
         {
+            if (taxableIncome < 0)
+                taxableIncome = 0;
+
             if (taxableIncome <= 20833) return 0;
 
             if (taxableIncome <= 33333)

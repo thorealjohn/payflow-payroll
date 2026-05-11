@@ -4,7 +4,22 @@
 
 <div class="mb-4">
     <h4 class="fw-bold mb-0">Reports Dashboard</h4>
-    <small class="text-muted">Generate and export payroll, attendance, and employee reports</small>
+    <small class="text-muted">Centralized reporting hub for payroll, attendance, and workforce analytics</small>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <a asp-action="PayrollReport" class="btn btn-outline-success w-100"><i class="fas fa-file-export me-1"></i> Quick Payroll Export</a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="AttendanceReport" class="btn btn-outline-primary w-100"><i class="fas fa-clock me-1"></i> Quick Attendance Export</a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="EmployeeReport" class="btn btn-outline-dark w-100"><i class="fas fa-users me-1"></i> Quick Employee Export</a>
+    </div>
+    <div class="col-md-3">
+        <a asp-controller="Payroll" asp-action="Index" class="btn btn-outline-warning w-100"><i class="fas fa-history me-1"></i> Recent Payroll Runs</a>
+    </div>
 </div>
 
 <div class="row">
@@ -13,8 +28,8 @@
             <div class="card-body text-center">
                 <i class="fas fa-money-bill-wave fa-3x text-success mb-3"></i>
                 <h5 class="card-title">Payroll Report</h5>
-                <p class="card-text text-muted">Generate payroll summary reports with filters</p>
-                <a asp-action="PayrollReport" class="btn btn-primary">Generate Report</a>
+                <p class="card-text text-muted">Compensation analysis with totals, status filters, trends, and payroll breakdown per row.</p>
+                <a asp-action="PayrollReport" class="btn btn-primary">Open Payroll Report</a>
             </div>
         </div>
     </div>
@@ -24,8 +39,8 @@
             <div class="card-body text-center">
                 <i class="fas fa-clock fa-3x text-warning mb-3"></i>
                 <h5 class="card-title">Attendance Report</h5>
-                <p class="card-text text-muted">View attendance records with late/undertime details</p>
-                <a asp-action="AttendanceReport" class="btn btn-primary">Generate Report</a>
+                <p class="card-text text-muted">Workforce discipline insights: lateness, missing logs, shift view, and attendance quality markers.</p>
+                <a asp-action="AttendanceReport" class="btn btn-primary">Open Attendance Report</a>
             </div>
         </div>
     </div>
@@ -35,8 +50,8 @@
             <div class="card-body text-center">
                 <i class="fas fa-users fa-3x text-info mb-3"></i>
                 <h5 class="card-title">Employee Report</h5>
-                <p class="card-text text-muted">Export employee directory with salary and shift info</p>
-                <a asp-action="EmployeeReport" class="btn btn-primary">Generate Report</a>
+                <p class="card-text text-muted">Workforce composition by department, employment type, status, and onboarding trends.</p>
+                <a asp-action="EmployeeReport" class="btn btn-primary">Open Employee Report</a>
             </div>
         </div>
     </div>

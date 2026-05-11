@@ -105,6 +105,8 @@ namespace itpayroll.Controllers
                 ViewBag.MonthlyPayroll = monthlyPayroll;
                 ViewBag.AttendanceTrend = attendanceTrend;
                 ViewBag.LeaveStats = leaveStats;
+                ViewBag.ShowPayrollChart = monthlyPayroll.Count >= 3;
+                ViewBag.ShowAttendanceChart = attendanceTrend.Count >= 5;
             }
 
             if (isHrOrAdmin)
@@ -122,6 +124,10 @@ namespace itpayroll.Controllers
                 var totalPayrolls = await payrollQuery.CountAsync();
                 var totalPayrollAmount = await payrollQuery.SumAsync(p => p.NetPay);
                 var pendingPayrolls = await payrollQuery.CountAsync(p => p.Status == Models.PayrollStatus.Processed);
+                var monthlyPayrollExpense = await _context.Payrolls
+                    .Where(p => p.PeriodStart.Month == DateTime.Today.Month
+                        && p.PeriodStart.Year == DateTime.Today.Year)
+                    .SumAsync(p => p.NetPay);
 
                 // Attendance stats - start only after payroll queries are done
                 var attendanceQuery = _context.Attendances.AsQueryable();
@@ -137,6 +143,7 @@ namespace itpayroll.Controllers
                 ViewBag.TodayAttendance = todayAttendance;
                 ViewBag.TotalPayrollAmount = totalPayrollAmount;
                 ViewBag.PendingPayrolls = pendingPayrolls;
+                ViewBag.MonthlyPayrollExpense = monthlyPayrollExpense;
 
                 // Recent data - materialize separately
                 var recentPayrolls = await payrollQuery
@@ -156,6 +163,45 @@ namespace itpayroll.Controllers
 
                 ViewBag.RecentPayrolls = recentPayrolls;
                 ViewBag.RecentAttendances = recentAttendances;
+
+                // Operational awareness signals for alerts panel
+                var openAttendanceCount = await _context.Attendances
+                    .CountAsync(a => a.Date == DateTime.Today && (a.TimeOut == default || a.TimeOut <= a.TimeIn));
+
+                var incompleteAttendanceEmployee = await _context.Attendances
+                    .Include(a => a.Employee)
+                    .ThenInclude(e => e.User)
+                    .Where(a => a.Date == DateTime.Today && (a.TimeOut == default || a.TimeOut <= a.TimeIn))
+                    .OrderByDescending(a => a.TimeIn)
+                    .Select(a => a.Employee.User.FirstName + " " + a.Employee.User.LastName)
+                    .FirstOrDefaultAsync();
+
+                var upcomingPayrollDate = await _context.Payrolls
+                    .Where(p => p.PeriodEnd >= DateTime.Today && p.Status != Models.PayrollStatus.Released)
+                    .OrderBy(p => p.PeriodEnd)
+                    .Select(p => (DateTime?)p.PeriodEnd)
+                    .FirstOrDefaultAsync();
+
+                int upcomingPayrollEmployees = 0;
+                decimal upcomingPayrollEstimate = 0;
+                if (upcomingPayrollDate.HasValue)
+                {
+                    upcomingPayrollEmployees = await _context.Payrolls
+                        .Where(p => p.PeriodEnd == upcomingPayrollDate.Value && p.Status != Models.PayrollStatus.Released)
+                        .Select(p => p.EmployeeId)
+                        .Distinct()
+                        .CountAsync();
+
+                    upcomingPayrollEstimate = await _context.Payrolls
+                        .Where(p => p.PeriodEnd == upcomingPayrollDate.Value && p.Status != Models.PayrollStatus.Released)
+                        .SumAsync(p => p.NetPay);
+                }
+
+                ViewBag.IncompleteAttendanceEmployee = incompleteAttendanceEmployee;
+                ViewBag.OpenAttendanceCount = openAttendanceCount;
+                ViewBag.UpcomingPayrollDate = upcomingPayrollDate;
+                ViewBag.UpcomingPayrollEmployees = upcomingPayrollEmployees;
+                ViewBag.UpcomingPayrollEstimate = upcomingPayrollEstimate;
             }
             else
             {

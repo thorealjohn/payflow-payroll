@@ -24,6 +24,9 @@ namespace itpayroll.Services
 
         public decimal ComputePhilHealth(decimal salary)
         {
+            if (salary <= 0)
+                return 0;
+
             decimal min = 10000;
             decimal max = 80000;
             decimal rate = 0.04m;

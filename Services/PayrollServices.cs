@@ -1,4 +1,7 @@
-﻿using itpayroll.Data;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using itpayroll.Data;
 using itpayroll.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,6 +51,76 @@ namespace itpayroll.Services
         private decimal ComputeNightShiftDifferential(decimal salary, double nightShiftHours)
             => HourlyRate(salary) * (decimal)nightShiftHours * 0.10m;
 
+        /// <summary>
+        /// When statutory totals exceed period gross (e.g. MSC floors), scale deductions
+        /// proportionally so net pay is not negative; tax absorbs rounding remainder.
+        /// </summary>
+        private static void CapDeductionsToGross(ref decimal sss, ref decimal phil, ref decimal pagibig, ref decimal tax, decimal gross)
+        {
+            if (gross <= 0)
+            {
+                sss = 0;
+                phil = 0;
+                pagibig = 0;
+                tax = 0;
+                return;
+            }
+
+            var raw = sss + phil + pagibig + tax;
+            if (raw <= gross)
+                return;
+
+            var factor = gross / raw;
+            sss = decimal.Round(sss * factor, 2, MidpointRounding.AwayFromZero);
+            phil = decimal.Round(phil * factor, 2, MidpointRounding.AwayFromZero);
+            pagibig = decimal.Round(pagibig * factor, 2, MidpointRounding.AwayFromZero);
+            tax = gross - sss - phil - pagibig;
+            if (tax >= 0)
+                return;
+
+            pagibig += tax;
+            tax = 0;
+            if (pagibig < 0)
+            {
+                phil += pagibig;
+                pagibig = 0;
+            }
+            if (phil < 0)
+            {
+                sss += phil;
+                phil = 0;
+            }
+            sss = Math.Max(0, sss);
+
+            var total = sss + phil + pagibig + tax;
+            if (total > gross)
+            {
+                var cut = total - gross;
+                if (tax >= cut)
+                    tax -= cut;
+                else
+                {
+                    cut -= tax;
+                    tax = 0;
+                    if (pagibig >= cut)
+                        pagibig -= cut;
+                    else
+                    {
+                        cut -= pagibig;
+                        pagibig = 0;
+                        if (phil >= cut)
+                            phil -= cut;
+                        else
+                        {
+                            cut -= phil;
+                            phil = 0;
+                            sss = Math.Max(0, sss - cut);
+                        }
+                    }
+                }
+            }
+        }
+
         // =========================
         // MAIN PROCESS
         // =========================
@@ -91,18 +164,24 @@ namespace itpayroll.Services
 
             var gross = basic + overtime + nightShiftDiff;
 
-            // 🔹 Government deductions
-            var sss = await _gov.ComputeSSS(employee.BasicSalary);
-            var phil = _gov.ComputePhilHealth(employee.BasicSalary);
-            var pagibig = _gov.ComputePagIBIG(employee.BasicSalary);
+            // Statutory contributions and withholding use the same base as period gross
+            // (earnings from this run), so deductions stay aligned with amounts earned.
+            decimal contributionBase = gross;
+
+            var sss = contributionBase > 0
+                ? await _gov.ComputeSSS(contributionBase)
+                : 0;
+            var phil = _gov.ComputePhilHealth(contributionBase);
+            var pagibig = _gov.ComputePagIBIG(contributionBase);
 
             var govTotal = sss + phil + pagibig;
 
-            // 🔹 Tax
             var taxable = gross - govTotal;
             var tax = _tax.ComputeTax(taxable);
 
-            var totalDed = govTotal + tax;
+            CapDeductionsToGross(ref sss, ref phil, ref pagibig, ref tax, gross);
+
+            var totalDed = sss + phil + pagibig + tax;
             var net = gross - totalDed;
 
             // 🔹 Save Payroll
@@ -116,6 +195,12 @@ namespace itpayroll.Services
                 NetPay = net,
                 Status = PayrollStatus.Processed
             };
+
+            var validationResults = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(payroll, new ValidationContext(payroll), validationResults, validateAllProperties: true))
+            {
+                throw new InvalidOperationException(string.Join("; ", validationResults.Select(r => r.ErrorMessage)));
+            }
 
             _context.Payrolls.Add(payroll);
             await _context.SaveChangesAsync();
