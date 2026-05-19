@@ -1,5 +1,16 @@
-﻿@{
+﻿@using itpayroll.Areas.Identity.Data
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentUser = await UserManager.GetUserAsync(User);
+    var userRoles = currentUser != null ? await UserManager.GetRolesAsync(currentUser) : new List<string>();
+    var displayName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}" : User.Identity?.Name ?? "User";
+    var primaryRole = userRoles.FirstOrDefault() ?? "User";
+    var initials = currentUser != null
+        ? $"{currentUser.FirstName?.FirstOrDefault()}{currentUser.LastName?.FirstOrDefault()}".Trim().ToUpper()
+        : (User.Identity?.Name?[0].ToString().ToUpper() ?? "U");
+    var profilePicPath = currentUser?.ProfilePicturePath;
 }
 
 <!DOCTYPE html>
@@ -33,13 +44,13 @@
             <span class="text">Dashboard</span>
         </a>
 
-        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+        @if (User.IsInRole("SuperAdmin"))
         {
             bool isUsersSection = currentController == "UserManagement";
             <div class="sidebar-accordion">
                 <a class="nav-link @(isUsersSection ? "active" : "")" data-bs-toggle="collapse" href="#usersCollapse" role="button" aria-expanded="@(isUsersSection ? "true" : "false")">
-                    <i class="fas fa-users"></i>
-                    <span class="text">Users</span>
+                    <i class="fas fa-users-cog"></i>
+                    <span class="text">System</span>
                     <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isUsersSection ? "rotated" : "")"></i>
                 </a>
                 <div class="collapse sidebar-submenu @(isUsersSection ? "show" : "")" id="usersCollapse">
@@ -74,7 +85,7 @@
             bool isAttendanceSection = currentController == "Attendance" || currentController == "Leave";
             <div class="sidebar-accordion">
                 <a class="nav-link @(isAttendanceSection ? "active" : "")" data-bs-toggle="collapse" href="#attendanceCollapse" role="button" aria-expanded="@(isAttendanceSection ? "true" : "false")">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-clipboard-check"></i>
                     <span class="text">Attendance</span>
                     <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isAttendanceSection ? "rotated" : "")"></i>
                 </a>
@@ -141,7 +152,7 @@
                 <span class="text">My Payslips</span>
             </a>
 
-            <a asp-controller="Dashboard" asp-action="Profile" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")">
+            <a asp-controller="Account" asp-action="Profile" class="nav-link @(currentController == "Account" && ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")">
                 <i class="fas fa-user-circle"></i>
                 <span class="text">Profile</span>
             </a>
@@ -189,18 +200,44 @@
                              type="button"
                              data-bs-toggle="dropdown"
                              aria-expanded="false">
-						<div class="avatar">
-                            @(User.Identity?.Name?[0].ToString().ToUpper())
+                        @if (!string.IsNullOrWhiteSpace(profilePicPath))
+                        {
+                            <img src="@profilePicPath" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="avatar">
+                                @initials
+                            </div>
+                        }
+                        <div class="text-start lh-sm">
+                            <strong class="d-block" style="font-size: 0.85rem;">@displayName</strong>
+                            <small class="text-muted" style="font-size: 0.7rem;">@primaryRole</small>
                         </div>
-                        <strong>@(User.Identity?.Name?.Split('@')[0])</strong>
                     </button>
 
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li class="dropdown-item small text-secondary">
-                            @User.Identity?.Name
+                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width: 220px;">
+                        <li class="px-3 py-2 text-center border-bottom">
+                            <div class="fw-semibold">@displayName</div>
+                            <span class="badge bg-secondary mt-1">@primaryRole</span>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                <i class="fas fa-user-circle me-2"></i>My Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/TwoFactorAuthentication">
+                                <i class="fas fa-shield-alt me-2"></i>Security
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                <i class="fas fa-key me-2"></i>Change Password
+                            </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
-                                        <li class="px-3 py-2 d-flex justify-content-between align-items-center">
+                        <li class="px-3 py-2 d-flex justify-content-between align-items-center">
                             <span>Dark Mode</span>
 
                             <label class="switch mb-0">
@@ -253,7 +290,12 @@
                 </div>
                 <div class="modal-body">
                     <label for="securityPasswordInput" class="form-label">Enter your password to continue.</label>
-                    <input type="password" id="securityPasswordInput" class="form-control" autocomplete="current-password" />
+                    <div class="position-relative">
+                        <input type="password" id="securityPasswordInput" class="form-control pe-5" autocomplete="current-password" />
+                        <button type="button" class="btn btn-link position-absolute end-0 top-0 h-100 d-flex align-items-center text-muted" id="toggleSecurityPassword" style="z-index: 5; text-decoration: none; background: none;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                     <div class="text-danger small mt-2 d-none" id="securityPasswordError">Password is required.</div>
                 </div>
                 <div class="modal-footer">
@@ -520,6 +562,13 @@
                 content.classList.toggle('expanded');
             });
         }
+        });
+        // Toggle security password visibility
+        document.getElementById('toggleSecurityPassword')?.addEventListener('click', function () {
+            var input = document.getElementById('securityPasswordInput');
+            var type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            this.querySelector('i').className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
         });
     </script>
 </body>

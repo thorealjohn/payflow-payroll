@@ -1,5 +1,4 @@
-﻿using itpayroll.Constant;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace itpayroll.ViewModels
 {
@@ -40,30 +39,5 @@ namespace itpayroll.ViewModels
         [DataType(DataType.Currency)]
         [Range(0, 1000000, ErrorMessage = "Invalid salary amount.")]
         public decimal? BasicSalary { get; set; }
-    }
-
-    public static class RoleHierarchy
-    {
-        private static readonly Dictionary<string, string[]> _allowedRoles = new()
-        {
-            { Roles.SuperAdmin, new[] { Roles.Admin } },
-            { Roles.Admin, new[] { Roles.HR, Roles.Employee } },
-            { Roles.HR, new[] { Roles.Employee } }
-        };
-
-        public static string[] GetAllowedRoles(string creatorRole)
-        {
-            return _allowedRoles.TryGetValue(creatorRole, out var roles) ? roles : Array.Empty<string>();
-        }
-
-        public static bool CanAssignRole(string creatorRole, string targetRole)
-        {
-            return GetAllowedRoles(creatorRole).Contains(targetRole);
-        }
-
-        public static bool IsEmployeeCreation(string creatorRole)
-        {
-            return creatorRole == Roles.HR;
-        }
     }
 }

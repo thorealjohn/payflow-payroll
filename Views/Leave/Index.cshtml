@@ -95,7 +95,7 @@
                             }
                             else if (l.Status == itpayroll.Models.LeaveStatus.Approved)
                             {
-                                <span class="btn btn-sm btn-outline-success">Approved</span>
+                                <span class="badge bg-success">Approved</span>
                             }
                             else if (l.Status == itpayroll.Models.LeaveStatus.Rejected)
                             {
@@ -110,8 +110,8 @@
                             <a asp-action="Details" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-outline-info">View</a>
                             @if (l.Status == itpayroll.Models.LeaveStatus.Pending)
                             {
-                                <a asp-action="Approve" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-success">Approve</a>
-                                <a asp-action="Reject" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-danger">Reject</a>
+                                <a asp-action="Approve" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-outline-success">Approve</a>
+                                <a asp-action="Reject" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-outline-danger">Reject</a>
                             }
                         </td>
                     </tr>

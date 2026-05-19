@@ -1,4 +1,5 @@
 using itpayroll.Areas.Identity.Data;
+using itpayroll.Data;
 using itpayroll.Models;
 using itpayroll.Services;
 using itpayroll.ViewModels;
@@ -6,6 +7,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace itpayroll.Controllers
 {
@@ -13,19 +17,28 @@ namespace itpayroll.Controllers
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationDbContext _context;
         private readonly AuditService _auditService;
         private readonly ILogger<AccountController> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _hostingEnvironment;
 
         public AccountController(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
+            ApplicationDbContext context,
             AuditService auditService,
-            ILogger<AccountController> logger)
+            ILogger<AccountController> logger,
+            IConfiguration configuration,
+            IWebHostEnvironment hostingEnvironment)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _context = context;
             _auditService = auditService;
             _logger = logger;
+            _configuration = configuration;
+            _hostingEnvironment = hostingEnvironment;
         }
 
         [HttpGet]
@@ -55,6 +68,28 @@ namespace itpayroll.Controllers
                 return View(model);
             }
 
+            var captchaResponse = Request.Form["g-recaptcha-response"];
+            var secretKey = _configuration["GoogleReCaptcha:SecretKey"];
+
+            using var client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
+
+            var response = await client.PostAsync(
+                $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={captchaResponse}",
+                null);
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            dynamic? captchaResult = JsonConvert.DeserializeObject(jsonResponse);
+
+            if (captchaResult?.success != true)
+            {
+                ModelState.AddModelError(string.Empty, "Captcha verification failed.");
+                return View(model);
+            }
+
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user == null)
             {
@@ -72,7 +107,7 @@ namespace itpayroll.Controllers
                 user.UserName!,
                 model.Password,
                 model.RememberMe,
-                lockoutOnFailure: false);
+                lockoutOnFailure: true);
 
             if (result.Succeeded)
             {
@@ -90,8 +125,12 @@ namespace itpayroll.Controllers
 
             if (result.RequiresTwoFactor)
             {
-                ModelState.AddModelError(string.Empty, "Two-factor login is not enabled in this login flow.");
-                return View(model);
+                var redirectUrl = QueryHelpers.AddQueryString("/Identity/Account/LoginWith2fa", new Dictionary<string, string?>
+                {
+                    ["returnUrl"] = model.ReturnUrl,
+                    ["rememberMe"] = model.RememberMe.ToString()
+                });
+                return Redirect(redirectUrl);
             }
 
             if (result.IsLockedOut)
@@ -114,6 +153,120 @@ namespace itpayroll.Controllers
             await _auditService.LogAsync(AuditAction.Logout, "Account", LogType.Security);
             await _signInManager.SignOutAsync();
             return RedirectToAction("Login", "Account");
+        }
+
+        [HttpGet("/Profile")]
+        [HttpGet("/Account/Profile")]
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            var model = await BuildProfileViewModelAsync();
+            if (model == null)
+            {
+                return Challenge();
+            }
+
+            return View(model);
+        }
+
+        [HttpPost("/Profile")]
+        [HttpPost("/Account/Profile")]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Profile(ProfileViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var hydratedModel = await BuildProfileViewModelAsync(model);
+                return View(hydratedModel ?? model);
+            }
+
+            user.FirstName = model.FirstName;
+            user.MiddleName = model.MiddleName;
+            user.LastName = model.LastName;
+            user.Suffix = model.Suffix;
+            user.DateOfBirth = model.DateOfBirth?.Date;
+            user.Nationality = model.Nationality;
+            user.PhoneNumber = model.PhoneNumber;
+            user.AlternatePhone = model.AlternatePhone;
+            user.AddressStreet = model.AddressStreet;
+            user.AddressBarangay = model.AddressBarangay;
+            user.AddressCity = model.AddressCity;
+            user.AddressProvince = model.AddressProvince;
+            user.AddressZipCode = model.AddressZipCode;
+            user.EmergencyContactName = model.EmergencyContactName;
+            user.EmergencyContactRelationship = model.EmergencyContactRelationship;
+            user.EmergencyContactPhone = model.EmergencyContactPhone;
+            user.ModifiedBy = User.Identity?.Name ?? "System";
+            user.ModifiedDate = DateTime.UtcNow;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+
+                var hydratedModel = await BuildProfileViewModelAsync(model);
+                return View(hydratedModel ?? model);
+            }
+
+            await _auditService.LogAsync(AuditAction.Update, "Account", LogType.Security, resource: "Profile");
+            TempData["Success"] = "Profile updated successfully.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["Error"] = "Please select a file.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                TempData["Error"] = "Only JPG, PNG, and GIF files are allowed.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            var uploadsPath = Path.Combine(_hostingEnvironment.WebRootPath, "uploads", "profiles");
+            Directory.CreateDirectory(uploadsPath);
+
+            var fileName = $"{user.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}{extension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            user.ProfilePicturePath = $"/uploads/profiles/{fileName}";
+            user.ModifiedBy = User.Identity?.Name ?? "System";
+            user.ModifiedDate = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+            await _auditService.LogAsync(AuditAction.Update, "Account", LogType.Security, resource: "ProfilePicture");
+
+            TempData["Success"] = "Profile picture updated.";
+            return RedirectToAction(nameof(Profile));
         }
 
         [HttpGet]
@@ -156,7 +309,7 @@ namespace itpayroll.Controllers
             await _signInManager.RefreshSignInAsync(user);
 
             TempData["Success"] = "Your password has been changed.";
-            return RedirectToAction("Index", "Dashboard");
+            return RedirectToAction(nameof(Profile));
         }
 
         [HttpGet]
@@ -164,6 +317,73 @@ namespace itpayroll.Controllers
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+        private async Task<ProfileViewModel?> BuildProfileViewModelAsync(ProfileViewModel? existing = null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return null;
+            }
+
+            var employee = await _context.Employees
+                .Include(e => e.Shift)
+                .FirstOrDefaultAsync(e => e.UserId == user.Id);
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var recentSecurityLogs = await _context.AuditLogs
+                .Where(log => log.UserId == user.Id && log.LogType == LogType.Security)
+                .OrderByDescending(log => log.Timestamp)
+                .Take(8)
+                .ToListAsync();
+
+            var model = existing ?? new ProfileViewModel();
+            model.FirstName = existing?.FirstName ?? user.FirstName;
+            model.MiddleName = existing?.MiddleName ?? user.MiddleName;
+            model.LastName = existing?.LastName ?? user.LastName;
+            model.Suffix = existing?.Suffix ?? user.Suffix;
+            model.DateOfBirth = existing?.DateOfBirth ?? user.DateOfBirth;
+            model.Gender = user.Gender?.ToString();
+            model.CivilStatus = user.CivilStatus?.ToString();
+            model.Nationality = existing?.Nationality ?? user.Nationality;
+            model.Email = user.Email ?? string.Empty;
+            model.PhoneNumber = existing?.PhoneNumber ?? user.PhoneNumber ?? string.Empty;
+            model.AlternatePhone = existing?.AlternatePhone ?? user.AlternatePhone;
+            model.AddressStreet = existing?.AddressStreet ?? user.AddressStreet;
+            model.AddressBarangay = existing?.AddressBarangay ?? user.AddressBarangay;
+            model.AddressCity = existing?.AddressCity ?? user.AddressCity;
+            model.AddressProvince = existing?.AddressProvince ?? user.AddressProvince;
+            model.AddressZipCode = existing?.AddressZipCode ?? user.AddressZipCode;
+            model.EmergencyContactName = existing?.EmergencyContactName ?? user.EmergencyContactName;
+            model.EmergencyContactRelationship = existing?.EmergencyContactRelationship ?? user.EmergencyContactRelationship;
+            model.EmergencyContactPhone = existing?.EmergencyContactPhone ?? user.EmergencyContactPhone;
+            model.ProfilePicturePath = user.ProfilePicturePath;
+            model.EmployeeNumber = employee?.EmployeeNumber ?? string.Empty;
+            model.Department = employee?.Department;
+            model.Position = employee?.Position;
+            model.EmploymentType = employee?.EmploymentType;
+            model.BasicSalary = employee?.BasicSalary ?? 0;
+            model.SalaryType = employee?.SalaryType ?? SalaryType.Monthly;
+            model.PayFrequency = employee?.PayFrequency ?? PayFrequency.Monthly;
+            model.BankName = employee?.BankName;
+            model.BankAccountNumber = employee?.BankAccountNumber;
+            model.TIN = employee?.TIN;
+            model.SSSNumber = employee?.SSSNumber;
+            model.PhilHealthNumber = employee?.PhilHealthNumber;
+            model.PagIBIGNumber = employee?.PagIBIGNumber;
+            model.HireDate = employee?.HireDate ?? DateTime.MinValue;
+            model.ShiftName = employee?.Shift?.ShiftName ?? "Not Assigned";
+            model.Status = employee?.Status.ToString() ?? (user.IsActive ? "Active" : "Inactive");
+            model.Roles = roles.ToList();
+            model.IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
+            model.RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user);
+            model.LastLoginDate = user.LastLoginDate;
+            model.PasswordLastChanged = user.PasswordLastChanged;
+            model.LastIpAddress = recentSecurityLogs.FirstOrDefault(log => log.Action == AuditAction.Login)?.IpAddress;
+            model.RecentSecurityLogs = recentSecurityLogs;
+
+            return model;
         }
     }
 }

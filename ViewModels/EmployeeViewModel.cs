@@ -25,19 +25,20 @@ namespace itpayroll.ViewModels
         public string EmployeeNumber { get; set; } = string.Empty;
 
         [Required]
+        [Display(Name = "Role")]
+        public string Role { get; set; } = Constant.Roles.Employee;
+
+        [Required]
         [Display(Name = "Status")]
         public EmploymentStatus Status { get; set; } = EmploymentStatus.Active;
 
-        [Required]
-        [Range(0, 1000000)]
         [DataType(DataType.Currency)]
         [Display(Name = "Basic Salary")]
         public decimal BasicSalary { get; set; }
 
-        [Required]
         [DataType(DataType.Date)]
         [Display(Name = "Hire Date")]
-        public DateTime HireDate { get; set; }
+        public DateTime HireDate { get; set; } = DateTime.Today;
 
         [DataType(DataType.Date)]
         [Display(Name = "Termination Date")]

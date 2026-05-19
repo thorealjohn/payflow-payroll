@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 
 namespace itpayroll.Areas.Identity.Pages.Account
 {
+    [AllowAnonymous]
     public class LoginModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -28,18 +29,21 @@ namespace itpayroll.Areas.Identity.Pages.Account
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly itpayroll.Data.ApplicationDbContext _context;
         private readonly AuditService _auditService;
+        private readonly IConfiguration _configuration;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             ILogger<LoginModel> logger,
             UserManager<ApplicationUser> userManager,
             itpayroll.Data.ApplicationDbContext context,
-            AuditService auditService)
+            AuditService auditService,
+            IConfiguration configuration)
         {
             _signInManager = signInManager;
             _logger = logger;
             _userManager = userManager;
             _context = context;
+            _configuration = configuration;
             _auditService = auditService;
         }
 

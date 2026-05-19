@@ -1,17 +1,16 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-#nullable disable
+﻿#nullable disable
 
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using itpayroll.Areas.Identity.Data;
+using itpayroll.Models;
+using itpayroll.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging;
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
 
 namespace itpayroll.Areas.Identity.Pages.Account
 {
@@ -20,15 +19,18 @@ namespace itpayroll.Areas.Identity.Pages.Account
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginWith2faModel> _logger;
+        private readonly AuditService _auditService;
 
         public LoginWith2faModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            ILogger<LoginWith2faModel> logger)
+            ILogger<LoginWith2faModel> logger,
+            AuditService auditService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -113,7 +115,17 @@ namespace itpayroll.Areas.Identity.Pages.Account
 
             if (result.Succeeded)
             {
+                user.LastLoginDate = DateTime.UtcNow;
+                await _userManager.UpdateAsync(user);
+                await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
+
                 _logger.LogInformation("User with ID '{UserId}' logged in with 2fa.", user.Id);
+
+                if (string.IsNullOrEmpty(returnUrl))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "" });
+                }
+
                 return LocalRedirect(returnUrl);
             }
             else if (result.IsLockedOut)

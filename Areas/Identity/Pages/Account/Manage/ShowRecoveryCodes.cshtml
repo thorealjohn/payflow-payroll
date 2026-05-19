@@ -1,0 +1,48 @@
+@page
+@model ShowRecoveryCodesModel
+@{
+    ViewData["Title"] = "Recovery Codes";
+}
+
+<div class="container-fluid">
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <partial name="_StatusMessage" for="StatusMessage" />
+
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Two-Factor Authentication Enabled</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <p class="fw-semibold mb-0">Your authenticator app has been verified and 2FA is now enabled.</p>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <p class="fw-semibold mb-2"><i class="fas fa-exclamation-triangle me-1"></i>Save these recovery codes</p>
+                        <p class="mb-0">
+                            Put these codes in a safe place. If you lose your device and don't have the recovery codes,
+                            you will lose access to your account.
+                        </p>
+                    </div>
+
+                    <div class="row g-2 mb-4">
+                        @if (Model.RecoveryCodes != null)
+                        {
+                            foreach (var code in Model.RecoveryCodes)
+                            {
+                                <div class="col-md-6">
+                                    <kbd class="d-block p-3 text-center" style="font-size: 1.1rem; letter-spacing: 2px;">@code</kbd>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    <a asp-page="./TwoFactorAuthentication" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Security Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

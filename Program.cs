@@ -5,6 +5,7 @@ using itpayroll.Filters;
 using itpayroll.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +20,7 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure();
-    }));
+    }), ServiceLifetime.Scoped);
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>()
@@ -57,6 +58,12 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
+
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.SlidingExpiration = true;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
 });
 
 builder.Services.AddControllersWithViews(options =>
@@ -117,6 +124,60 @@ using (var scope = app.Services.CreateScope())
 
         await SeedData.InitializeAsync(userManager, roleManager, builder.Configuration, context, app.Environment);
 
+        // Migrate existing Admin/HR users without Employee records
+        try
+        {
+            var adminHrRoleNames = new[] { "Admin", "HR" };
+            var usersNeedingEmployees = new List<(ApplicationUser User, string RoleName)>();
+
+            foreach (var roleName in adminHrRoleNames)
+            {
+                var usersInRole = await userManager.GetUsersInRoleAsync(roleName);
+                foreach (var user in usersInRole)
+                {
+                    var hasEmployee = await context.Employees.AnyAsync(e => e.UserId == user.Id);
+                    if (!hasEmployee)
+                        usersNeedingEmployees.Add((user, roleName));
+                }
+            }
+
+            if (usersNeedingEmployees.Count > 0)
+            {
+                var lastEmployee = await context.Employees
+                    .OrderByDescending(e => e.EmployeeId)
+                    .FirstOrDefaultAsync();
+
+                var nextNumber = 1;
+                if (lastEmployee?.EmployeeNumber?.StartsWith("EMP-") == true
+                    && int.TryParse(lastEmployee.EmployeeNumber[4..], out var lastNum))
+                    nextNumber = lastNum + 1;
+
+                foreach (var (user, roleName) in usersNeedingEmployees)
+                {
+                    context.Employees.Add(new itpayroll.Models.Employee
+                    {
+                        UserId = user.Id,
+                        EmployeeNumber = $"EMP-{nextNumber:D4}",
+                        BasicSalary = 0,
+                        HireDate = user.CreatedDate != default ? user.CreatedDate : DateTime.UtcNow,
+                        Status = itpayroll.Models.EmploymentStatus.Active,
+                        Department = roleName == "HR" ? "Human Resources" : null,
+                        Position = roleName == "HR" ? "HR Staff" : null,
+                        CreatedBy = "System",
+                        CreatedDate = DateTime.UtcNow
+                    });
+                    nextNumber++;
+                }
+
+                await context.SaveChangesAsync();
+                logger.LogInformation("Created {Count} missing Employee records for existing Admin/HR users.", usersNeedingEmployees.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to migrate existing Admin/HR users to Employee records. Non-fatal, continuing startup.");
+        }
+
         var auditRetentionDays = builder.Configuration.GetValue<int?>("Audit:RetentionDays") ?? 90;
         var auditService = services.GetRequiredService<AuditService>();
         await auditService.PruneAsync(auditRetentionDays);
@@ -140,8 +201,16 @@ else
     app.UseHsts();
 }*/
 
-app.UseDeveloperExceptionPage();
-app.UseMigrationsEndPoint();
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+    app.UseMigrationsEndPoint();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

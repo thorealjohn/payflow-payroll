@@ -13,7 +13,7 @@ using itpayroll.Services;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Policy = "RequireAdminOrAbove")]
+    [Authorize(Roles = $"{Roles.SuperAdmin}")]
     public class UserManagementController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -102,121 +102,7 @@ namespace itpayroll.Controllers
             return View(users);
         }
 
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public IActionResult Create()
-        {
-            var currentRole = GetCurrentUserRole();
-            var allowedRoles = RoleHierarchy.GetAllowedRoles(currentRole);
-            var requiresEmployeeCreation = RoleHierarchy.IsEmployeeCreation(currentRole);
 
-            ViewBag.AllowedRoles = allowedRoles.Select(r => new SelectListItem
-            {
-                Value = r,
-                Text = r
-            }).ToList();
-
-            ViewBag.RequiresEmployeeCreation = requiresEmployeeCreation;
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Create(CreateUserViewModel model)
-        {
-            var currentRole = GetCurrentUserRole();
-            var allowedRoles = RoleHierarchy.GetAllowedRoles(currentRole);
-            var requiresEmployeeCreation = RoleHierarchy.IsEmployeeCreation(currentRole);
-
-            ViewBag.AllowedRoles = allowedRoles.Select(r => new SelectListItem
-            {
-                Value = r,
-                Text = r
-            }).ToList();
-
-            ViewBag.RequiresEmployeeCreation = requiresEmployeeCreation;
-
-            if (requiresEmployeeCreation)
-            {
-                if (string.IsNullOrWhiteSpace(model.EmployeeNumber))
-                {
-                    ModelState.AddModelError(nameof(model.EmployeeNumber), "Employee number is required.");
-                }
-
-                if (!model.BasicSalary.HasValue || model.BasicSalary.Value <= 0)
-                {
-                    ModelState.AddModelError(nameof(model.BasicSalary), "Basic salary is required and must be greater than zero.");
-                }
-            }
-
-            if (!ModelState.IsValid)
-                return View(model);
-
-            if (!RoleHierarchy.CanAssignRole(currentRole, model.Role))
-            {
-                ModelState.AddModelError(string.Empty, "You are not authorized to assign this role.");
-                return View(model);
-            }
-
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
-            if (existingUser != null)
-            {
-                ModelState.AddModelError(nameof(model.Email), "Email is already in use.");
-                return View(model);
-            }
-
-            var existingEmployeeNumber = !string.IsNullOrWhiteSpace(model.EmployeeNumber)
-                && await _context.Employees.AnyAsync(e => e.EmployeeNumber == model.EmployeeNumber);
-
-            if (existingEmployeeNumber)
-            {
-                ModelState.AddModelError(nameof(model.EmployeeNumber), "Employee number already exists.");
-                return View(model);
-            }
-
-            var user = new ApplicationUser
-            {
-                UserName = model.Email,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                CreatedBy = User.Identity?.Name ?? "System",
-                CreatedDate = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-
-            if (!result.Succeeded)
-            {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError("", error.Description);
-                }
-                return View(model);
-            }
-
-            await _userManager.AddToRoleAsync(user, model.Role);
-
-            if (requiresEmployeeCreation)
-            {
-                var employee = new Employee
-                {
-                    UserId = user.Id,
-                    EmployeeNumber = model.EmployeeNumber!,
-                    BasicSalary = model.BasicSalary!.Value,
-                    HireDate = DateTime.UtcNow,
-                    Status = EmploymentStatus.Active,
-                    CreatedBy = User.Identity?.Name ?? "System"
-                };
-
-                _context.Employees.Add(employee);
-                await _context.SaveChangesAsync();
-            }
-
-            await _auditService.LogAsync(AuditAction.Create, $"User: {user.Email}");
-            return RedirectToAction(nameof(Index));
-        }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> Edit(string id)

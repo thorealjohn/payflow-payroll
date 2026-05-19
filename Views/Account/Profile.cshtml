@@ -1,0 +1,263 @@
+@model itpayroll.ViewModels.ProfileViewModel
+
+@{
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+    ViewData["Title"] = "My Profile";
+    var initials = $"{Model.FirstName.FirstOrDefault()}{Model.LastName.FirstOrDefault()}".Trim().ToUpper();
+}
+
+<div class="container-fluid">
+    <div class="row g-4">
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    @if (!string.IsNullOrWhiteSpace(Model.ProfilePicturePath))
+                    {
+                        <img src="@Model.ProfilePicturePath" alt="Profile picture" class="rounded-circle mb-3" style="width: 132px; height: 132px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 132px; height: 132px; font-size: 2.5rem; font-weight: 700;">
+                            @(string.IsNullOrWhiteSpace(initials) ? "PF" : initials)
+                        </div>
+                    }
+                    <h4 class="mb-1">@Model.FirstName @Model.LastName</h4>
+                    <div class="text-muted mb-3">@Model.Email</div>
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                        @foreach (var role in Model.Roles)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">@role</span>
+                        }
+                    </div>
+                    <form asp-controller="Account" asp-action="UploadProfilePicture" method="post" enctype="multipart/form-data">
+                        <input type="file" name="file" accept="image/*" class="form-control mb-2" />
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-camera me-2"></i>Update Photo
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Account Security</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">2FA Status</span>
+                        <span class="fw-semibold">@(Model.IsTwoFactorEnabled ? "Enabled" : "Disabled")</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Recovery Codes</span>
+                        <span class="fw-semibold">@Model.RecoveryCodesLeft</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Last Login</span>
+                        <span class="fw-semibold text-end">@(Model.LastLoginDate?.ToString("MMM dd, yyyy hh:mm tt") ?? "Never")</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="text-muted">Last IP</span>
+                        <span class="fw-semibold">@(Model.LastIpAddress ?? "Unknown")</span>
+                    </div>
+                    <div class="d-grid gap-2 mt-3">
+                        <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-outline-secondary">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </a>
+                        <a asp-area="Identity" asp-page="/Account/Manage/TwoFactorAuthentication" class="btn btn-outline-secondary">
+                            <i class="fas fa-shield-halved me-2"></i>Two-Factor Authentication
+                        </a>
+                        <a asp-area="Identity" asp-page="/Account/Manage/GenerateRecoveryCodes" class="btn btn-outline-secondary">
+                            <i class="fas fa-life-ring me-2"></i>Recovery Codes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Profile Information</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Account" asp-action="Profile" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="MiddleName" class="form-label"></label>
+                                <input asp-for="MiddleName" class="form-control" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="Suffix" class="form-label"></label>
+                                <input asp-for="Suffix" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="AlternatePhone" class="form-label"></label>
+                                <input asp-for="AlternatePhone" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="DateOfBirth" class="form-label"></label>
+                                <input asp-for="DateOfBirth" class="form-control" type="date" asp-format="{0:yyyy-MM-dd}" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Gender" class="form-label"></label>
+                                <input asp-for="Gender" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="CivilStatus" class="form-label"></label>
+                                <input asp-for="CivilStatus" class="form-control" disabled />
+                            </div>
+                        </div>
+
+                        <hr />
+                        <h6 class="mb-3">Address</h6>
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label asp-for="AddressStreet" class="form-label"></label>
+                                <input asp-for="AddressStreet" class="form-control" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="AddressBarangay" class="form-label"></label>
+                                <input asp-for="AddressBarangay" class="form-control" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="AddressCity" class="form-label"></label>
+                                <input asp-for="AddressCity" class="form-control" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="AddressProvince" class="form-label"></label>
+                                <input asp-for="AddressProvince" class="form-control" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="AddressZipCode" class="form-label"></label>
+                                <input asp-for="AddressZipCode" class="form-control" />
+                            </div>
+                        </div>
+
+                        <hr />
+                        <h6 class="mb-3">Emergency Contact</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label asp-for="EmergencyContactName" class="form-label"></label>
+                                <input asp-for="EmergencyContactName" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="EmergencyContactRelationship" class="form-label"></label>
+                                <input asp-for="EmergencyContactRelationship" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="EmergencyContactPhone" class="form-label"></label>
+                                <input asp-for="EmergencyContactPhone" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.EmployeeNumber) || !string.IsNullOrWhiteSpace(Model.Department) || !string.IsNullOrWhiteSpace(Model.Position))
+            {
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Employment Information</h5>
+                        <span class="badge bg-secondary">Read Only</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label asp-for="EmployeeNumber" class="form-label"></label>
+                                <input asp-for="EmployeeNumber" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Department" class="form-label"></label>
+                                <input asp-for="Department" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Position" class="form-label"></label>
+                                <input asp-for="Position" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Status" class="form-label"></label>
+                                <input asp-for="Status" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="HireDate" class="form-label"></label>
+                                <input class="form-control" value="@(Model.HireDate == DateTime.MinValue ? "" : Model.HireDate.ToString("MMM dd, yyyy"))" disabled />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ShiftName" class="form-label"></label>
+                                <input asp-for="ShiftName" class="form-control" disabled />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Security Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentSecurityLogs.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Activity</th>
+                                        <th>Device</th>
+                                        <th>IP Address</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.RecentSecurityLogs)
+                                    {
+                                        <tr>
+                                            <td>@log.Action</td>
+                                            <td>@(string.IsNullOrWhiteSpace(log.Browser) ? "Unknown" : $"{log.Browser} on {log.OperatingSystem}")</td>
+                                            <td>@(log.IpAddress ?? "Unknown")</td>
+                                            <td>@log.Timestamp.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-muted">No security activity has been recorded yet.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -7,7 +7,7 @@
 @if (SignInManager.IsSignedIn(User))
 {
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-controller="Dashboard" asp-action="Profile" title="Manage">
+        <a class="nav-link text-dark" asp-controller="Account" asp-action="Profile" title="Manage">
             @if (UserManager.GetUserName(User) != null)
             {
                 var user = UserManager.GetUserName(User);

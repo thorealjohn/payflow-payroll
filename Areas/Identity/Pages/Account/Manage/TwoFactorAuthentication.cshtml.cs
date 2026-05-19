@@ -4,11 +4,11 @@
 
 using System;
 using System.Threading.Tasks;
+using itpayroll.Areas.Identity.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
-using itpayroll.Areas.Identity.Data;
 
 namespace itpayroll.Areas.Identity.Pages.Account.Manage
 {

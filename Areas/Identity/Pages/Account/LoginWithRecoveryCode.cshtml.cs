@@ -6,6 +6,8 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using itpayroll.Areas.Identity.Data;
+using itpayroll.Models;
+using itpayroll.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,15 +20,18 @@ namespace itpayroll.Areas.Identity.Pages.Account
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginWithRecoveryCodeModel> _logger;
+        private readonly AuditService _auditService;
 
         public LoginWithRecoveryCodeModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            ILogger<LoginWithRecoveryCodeModel> logger)
+            ILogger<LoginWithRecoveryCodeModel> logger,
+            AuditService auditService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -94,8 +99,18 @@ namespace itpayroll.Areas.Identity.Pages.Account
 
             if (result.Succeeded)
             {
+                user.LastLoginDate = DateTime.UtcNow;
+                await _userManager.UpdateAsync(user);
+                await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
+
                 _logger.LogInformation("User with ID '{UserId}' logged in with a recovery code.", user.Id);
-                return LocalRedirect(returnUrl ?? Url.Content("~/"));
+
+                if (string.IsNullOrEmpty(returnUrl))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "" });
+                }
+
+                return LocalRedirect(returnUrl);
             }
             if (result.IsLockedOut)
             {

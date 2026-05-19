@@ -113,5 +113,24 @@ namespace itpayroll.ViewModels
 
         [Display(Name = "Profile Picture")]
         public string? ProfilePicturePath { get; set; }
+
+        public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
+
+        [Display(Name = "Two-Factor Authentication")]
+        public bool IsTwoFactorEnabled { get; set; }
+
+        [Display(Name = "Recovery Codes Left")]
+        public int RecoveryCodesLeft { get; set; }
+
+        [Display(Name = "Last Login")]
+        public DateTime? LastLoginDate { get; set; }
+
+        [Display(Name = "Password Last Changed")]
+        public DateTime? PasswordLastChanged { get; set; }
+
+        [Display(Name = "Last IP Address")]
+        public string? LastIpAddress { get; set; }
+
+        public IReadOnlyList<AuditLog> RecentSecurityLogs { get; set; } = Array.Empty<AuditLog>();
     }
 }
