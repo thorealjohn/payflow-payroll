@@ -118,7 +118,7 @@
     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
     {
         <a asp-action="Index" class="btn btn-secondary">Back to Payroll Records</a>
-        @if (Model.Payroll.Status == itpayroll.Models.PayrollStatus.Processed)
+        @if (Model.Payroll.Status == itpayroll.Models.PayrollStatus.Processed && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")))
         {
             <a asp-action="Release" asp-route-id="@Model.Payroll.PayrollId" class="btn btn-success">Release Payroll</a>
         }

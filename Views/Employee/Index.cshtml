@@ -1,12 +1,16 @@
 @model List<itpayroll.Models.Employee>
 @{
-    ViewData["Title"] = "Personnel";
+    ViewData["Title"] = "Employees";
+    int current = ViewBag.CurrentPage ?? 1;
+    int total = ViewBag.TotalPages ?? 1;
+    int start = Math.Max(1, current - 2);
+    int end = Math.Min(total, current + 2);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-0">Personnel</h4>
-        <small class="text-muted">Manage all personnel records and information</small>
+        <h4 class="fw-bold mb-0">Employees</h4>
+        <small class="text-muted">Manage company employee records and system access roles</small>
     </div>
     <div class="d-flex gap-2">
         <form asp-action="Index" method="get" class="d-flex gap-2">
@@ -19,7 +23,7 @@
         </form>
         @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
         {
-            <a asp-action="Create" class="btn btn-success">Add Personnel</a>
+            <a asp-action="Create" class="btn btn-success">Add Employee</a>
         }
     </div>
 </div>
@@ -31,7 +35,7 @@
                 <tr>
                     <th class="px-4">Employee #</th>
                     <th class="px-4">Name</th>
-                    <th class="px-4">Role</th>
+                    <th class="px-4">Access Role</th>
                     <th class="px-4">Basic Salary</th>
                     <th class="px-4">Status</th>
                     <th class="px-4">Hire Date</th>
@@ -42,11 +46,14 @@
                 @foreach (var emp in Model)
                 {
                     var badgeClass = emp.Status == itpayroll.Models.EmploymentStatus.Active ? "bg-success" : emp.Status == itpayroll.Models.EmploymentStatus.Inactive ? "bg-secondary" : "bg-danger";
-                    var salaryDisplay = emp.BasicSalary > 0 ? "₱" + emp.BasicSalary.ToString("N2") : "—";
+                    var salaryDisplay = emp.BasicSalary > 0 ? "PHP " + emp.BasicSalary.ToString("N2") : "-";
+                    var accessRole = ViewBag.UserRoles != null && ViewBag.UserRoles.ContainsKey(emp.EmployeeId)
+                        ? ViewBag.UserRoles[emp.EmployeeId]
+                        : "-";
                     <tr>
                         <td class="px-4"><strong>@emp.EmployeeNumber</strong></td>
                         <td class="px-4">@emp.User?.FirstName @emp.User?.LastName</td>
-                        <td class="px-4"><span class="badge bg-info">@ViewBag.UserRoles?[emp.EmployeeId] ?? "—"</span></td>
+                        <td class="px-4"><span class="badge bg-info">@accessRole</span></td>
                         <td class="px-4">@salaryDisplay</td>
                         <td class="px-4"><span class="badge @badgeClass">@emp.Status</span></td>
                         <td class="px-4">@emp.HireDate.ToString("MMM dd, yyyy")</td>
@@ -60,10 +67,39 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">No personnel found.</td>
+                        <td colspan="7" class="text-center text-muted py-4">No employees found.</td>
                     </tr>
                 }
             </tbody>
         </table>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center px-4 py-3 border-top">
+    <small class="text-muted">Page @current of @total</small>
+    <div class="d-flex gap-1 flex-wrap">
+        <a asp-action="Index" asp-route-page="@(current - 1)" asp-route-searchString="@ViewBag.CurrentFilter"
+           class="btn btn-sm btn-outline-primary @(current == 1 ? "disabled" : "")">Previous</a>
+
+        @if (start > 1)
+        {
+            <a asp-action="Index" asp-route-page="1" asp-route-searchString="@ViewBag.CurrentFilter" class="btn btn-sm btn-outline-primary">1</a>
+            @if (start > 2) { <span class="px-2">...</span> }
+        }
+
+        @for (int i = start; i <= end; i++)
+        {
+            <a asp-action="Index" asp-route-page="@i" asp-route-searchString="@ViewBag.CurrentFilter"
+               class="btn btn-sm @(i == current ? "btn-primary" : "btn-outline-primary")">@i</a>
+        }
+
+        @if (end < total)
+        {
+            @if (end < total - 1) { <span class="px-2">...</span> }
+            <a asp-action="Index" asp-route-page="@total" asp-route-searchString="@ViewBag.CurrentFilter" class="btn btn-sm btn-outline-primary">@total</a>
+        }
+
+        <a asp-action="Index" asp-route-page="@(current + 1)" asp-route-searchString="@ViewBag.CurrentFilter"
+           class="btn btn-sm btn-outline-primary @(current == total ? "disabled" : "")">Next</a>
     </div>
 </div>

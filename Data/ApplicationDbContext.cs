@@ -23,6 +23,8 @@ namespace itpayroll.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Overtime> Overtimes { get; set; }
         public DbSet<EmployeeShiftAssignment> EmployeeShiftAssignments { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Position> Positions { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             // AuditLog index (for performance)
@@ -170,6 +172,31 @@ namespace itpayroll.Data
                     .WithMany()
                     .HasForeignKey(a => a.ShiftId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                // Department - Position relationship
+                builder.Entity<Position>()
+                    .HasOne(p => p.Department)
+                    .WithMany(d => d.Positions)
+                    .HasForeignKey(p => p.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                builder.Entity<Position>()
+                    .HasIndex(p => new { p.Name, p.DepartmentId })
+                    .IsUnique();
+
+                // Employee - Department relationship
+                builder.Entity<Employee>()
+                    .HasOne(e => e.Department)
+                    .WithMany()
+                    .HasForeignKey(e => e.DepartmentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Employee - Position relationship
+                builder.Entity<Employee>()
+                    .HasOne(e => e.Position)
+                    .WithMany()
+                    .HasForeignKey(e => e.PositionId)
+                    .OnDelete(DeleteBehavior.SetNull);
         }
 
     }

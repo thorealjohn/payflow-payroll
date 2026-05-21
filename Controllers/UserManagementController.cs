@@ -13,7 +13,7 @@ using itpayroll.Services;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Roles = $"{Roles.SuperAdmin}")]
+    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
     public class UserManagementController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -41,7 +41,7 @@ namespace itpayroll.Controllers
             return Roles.Employee;
         }
 
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> Index(string? searchString, string? role, string? status, int? page)
         {
             var query = _userManager.Users.AsQueryable();
@@ -117,6 +117,12 @@ namespace itpayroll.Controllers
             var allowedRoles = RoleHierarchy.GetAllowedRoles(currentUserRole);
             var currentRole = currentRoles.FirstOrDefault();
 
+            if (currentUserRole == Roles.Admin && (currentRole == Roles.SuperAdmin || currentRole == Roles.Admin))
+            {
+                TempData["Error"] = "Admins cannot modify SuperAdmin or Admin accounts.";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (!string.IsNullOrEmpty(currentRole) && !allowedRoles.Contains(currentRole))
             {
                 allowedRoles = allowedRoles.Concat(new[] { currentRole }).ToArray();
@@ -154,6 +160,13 @@ namespace itpayroll.Controllers
                 return NotFound();
 
             var currentUserRole = GetCurrentUserRole();
+            var targetUserRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+
+            if (currentUserRole == Roles.Admin && (targetUserRole == Roles.SuperAdmin || targetUserRole == Roles.Admin))
+            {
+                TempData["Error"] = "Admins cannot modify SuperAdmin or Admin accounts.";
+                return RedirectToAction(nameof(Index));
+            }
 
             if (!RoleHierarchy.CanAssignRole(currentUserRole, model.CurrentRole))
             {
@@ -185,7 +198,7 @@ namespace itpayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> Details(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -205,7 +218,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> ToggleStatus(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -221,9 +234,9 @@ namespace itpayroll.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if (targetUserRole == Roles.Admin && currentUserRole == Roles.HR)
+            if (targetUserRole == Roles.Admin && currentUserRole != Roles.SuperAdmin)
             {
-                TempData["Error"] = "HR cannot modify Admin accounts.";
+                TempData["Error"] = "Admins cannot modify Admin accounts.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -271,6 +284,93 @@ namespace itpayroll.Controllers
             await _userManager.UpdateAsync(user);
 
             await _auditService.LogAsync(AuditAction.Delete, $"User: {user.Email}");
+            return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
+        public async Task<IActionResult> ResetPassword(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound();
+
+            var targetUserRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+            var currentUserRole = GetCurrentUserRole();
+
+            if (targetUserRole == Roles.SuperAdmin && currentUserRole != Roles.SuperAdmin)
+            {
+                TempData["Error"] = "You cannot reset the password of a SuperAdmin account.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (targetUserRole == Roles.Admin && currentUserRole != Roles.SuperAdmin)
+            {
+                TempData["Error"] = "Admins cannot reset the password of Admin accounts.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var model = new ResetPasswordViewModel
+            {
+                UserId = user.Id,
+                UserDisplayName = $"{user.FirstName} {user.LastName}",
+                Email = user.Email ?? string.Empty
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null)
+                return NotFound();
+
+            var targetUserRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+            var currentUserRole = GetCurrentUserRole();
+
+            if (targetUserRole == Roles.SuperAdmin && currentUserRole != Roles.SuperAdmin)
+            {
+                TempData["Error"] = "You cannot reset the password of a SuperAdmin account.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (targetUserRole == Roles.Admin && currentUserRole != Roles.SuperAdmin)
+            {
+                TempData["Error"] = "Admins cannot reset the password of Admin accounts.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+
+                model.UserDisplayName = $"{user.FirstName} {user.LastName}";
+                model.Email = user.Email ?? string.Empty;
+                return View(model);
+            }
+
+            user.MustChangePassword = true;
+            user.PasswordLastChanged = DateTime.UtcNow;
+            user.ModifiedDate = DateTime.UtcNow;
+            user.ModifiedBy = User.Identity?.Name ?? "System";
+            await _userManager.UpdateAsync(user);
+
+            await _auditService.LogAsync(AuditAction.PasswordReset, "UserManagement",
+                LogType.Security, resource: "ResetPassword", targetId: user.Id);
+
+            TempData["Success"] = $"Password for {user.FirstName} {user.LastName} has been reset. The user will be required to change it on next login.";
             return RedirectToAction(nameof(Index));
         }
 

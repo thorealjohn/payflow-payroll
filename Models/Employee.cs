@@ -40,11 +40,17 @@ namespace itpayroll.Models
         public Shift? Shift { get; set; }
 
         // EMPLOYMENT DETAILS
-        [MaxLength(100)]
-        public string? Department { get; set; }
+        [Display(Name = "Department")]
+        public int? DepartmentId { get; set; }
 
-        [MaxLength(100)]
-        public string? Position { get; set; }
+        [ForeignKey(nameof(DepartmentId))]
+        public Department? Department { get; set; }
+
+        [Display(Name = "Position")]
+        public int? PositionId { get; set; }
+
+        [ForeignKey(nameof(PositionId))]
+        public Position? Position { get; set; }
 
         public EmploymentType? EmploymentType { get; set; }
 

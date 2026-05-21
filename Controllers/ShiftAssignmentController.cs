@@ -6,7 +6,7 @@ using itpayroll.Data;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin,HR")]
     public class ShiftAssignmentController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -31,8 +31,13 @@ namespace itpayroll.Controllers
         public async Task<IActionResult> Assign(int? employeeId)
         {
             ViewBag.Employees = await _context.Employees
-                .Where(e => e.Status == EmploymentStatus.Active)
                 .Include(e => e.User)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
+                .Select(e => new
+                {
+                    EmployeeId = e.EmployeeId,
+                    DisplayText = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
+                })
                 .ToListAsync();
 
             ViewBag.Shifts = await _context.Shifts
@@ -76,8 +81,13 @@ namespace itpayroll.Controllers
             }
 
             ViewBag.Employees = await _context.Employees
-                .Where(e => e.Status == EmploymentStatus.Active)
                 .Include(e => e.User)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
+                .Select(e => new
+                {
+                    EmployeeId = e.EmployeeId,
+                    DisplayText = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
+                })
                 .ToListAsync();
 
             ViewBag.Shifts = await _context.Shifts

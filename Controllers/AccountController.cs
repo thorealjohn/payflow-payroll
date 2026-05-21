@@ -19,6 +19,7 @@ namespace itpayroll.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
         private readonly AuditService _auditService;
+        private readonly NotificationService _notificationService;
         private readonly ILogger<AccountController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _hostingEnvironment;
@@ -28,6 +29,7 @@ namespace itpayroll.Controllers
             UserManager<ApplicationUser> userManager,
             ApplicationDbContext context,
             AuditService auditService,
+            NotificationService notificationService,
             ILogger<AccountController> logger,
             IConfiguration configuration,
             IWebHostEnvironment hostingEnvironment)
@@ -36,6 +38,7 @@ namespace itpayroll.Controllers
             _userManager = userManager;
             _context = context;
             _auditService = auditService;
+            _notificationService = notificationService;
             _logger = logger;
             _configuration = configuration;
             _hostingEnvironment = hostingEnvironment;
@@ -112,6 +115,14 @@ namespace itpayroll.Controllers
             if (result.Succeeded)
             {
                 user.LastLoginDate = DateTime.UtcNow;
+
+                var passwordExpiryDays = _configuration.GetValue<int>("PasswordExpiryDays");
+                if (passwordExpiryDays > 0 && user.PasswordLastChanged.HasValue &&
+                    DateTime.UtcNow - user.PasswordLastChanged.Value > TimeSpan.FromDays(passwordExpiryDays))
+                {
+                    user.MustChangePassword = true;
+                }
+
                 await _userManager.UpdateAsync(user);
                 await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
 
@@ -136,6 +147,8 @@ namespace itpayroll.Controllers
             if (result.IsLockedOut)
             {
                 _logger.LogWarning("User account locked out.");
+                await _notificationService.CreateNotificationForRole("Admin", "Account Locked",
+                    $"User {user.Email} has been locked out due to too many failed login attempts.");
                 ModelState.AddModelError(string.Empty, "This account is locked. Please try again later.");
                 return View(model);
             }
@@ -329,6 +342,8 @@ namespace itpayroll.Controllers
 
             var employee = await _context.Employees
                 .Include(e => e.Shift)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
                 .FirstOrDefaultAsync(e => e.UserId == user.Id);
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -360,8 +375,8 @@ namespace itpayroll.Controllers
             model.EmergencyContactPhone = existing?.EmergencyContactPhone ?? user.EmergencyContactPhone;
             model.ProfilePicturePath = user.ProfilePicturePath;
             model.EmployeeNumber = employee?.EmployeeNumber ?? string.Empty;
-            model.Department = employee?.Department;
-            model.Position = employee?.Position;
+            model.Department = employee?.Department?.Name;
+            model.Position = employee?.Position?.Name;
             model.EmploymentType = employee?.EmploymentType;
             model.BasicSalary = employee?.BasicSalary ?? 0;
             model.SalaryType = employee?.SalaryType ?? SalaryType.Monthly;

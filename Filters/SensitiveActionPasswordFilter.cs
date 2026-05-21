@@ -17,7 +17,8 @@ namespace itpayroll.Filters
             "Void",
             "Approve",
             "Reject",
-            "Process"
+            "Process",
+            "ResetPassword"
         };
 
         private readonly UserManager<ApplicationUser> _userManager;

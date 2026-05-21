@@ -4,7 +4,7 @@ namespace itpayroll.Constant
     {
         private static readonly Dictionary<string, string[]> _allowedRoles = new()
         {
-            { Roles.SuperAdmin, new[] { Roles.Admin } },
+            { Roles.SuperAdmin, new[] { Roles.Admin, Roles.HR, Roles.Employee } },
             { Roles.Admin, new[] { Roles.HR, Roles.Employee } },
             { Roles.HR, new[] { Roles.Employee } }
         };

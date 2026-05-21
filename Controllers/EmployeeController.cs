@@ -39,11 +39,38 @@ namespace itpayroll.Controllers
             ViewBag.Shifts = new SelectList(shifts, "ShiftId", "ShiftName", selectedShiftId);
         }
 
-        public async Task<IActionResult> Index(string? searchString = null)
+        private async Task PopulateDepartmentDropdown(int? selectedDepartmentId)
         {
+            var departments = await _context.Departments
+                .OrderBy(d => d.Name)
+                .Select(d => new { d.DepartmentId, d.Name })
+                .ToListAsync();
+            ViewBag.Departments = new SelectList(departments, "DepartmentId", "Name", selectedDepartmentId);
+        }
+
+        private async Task PopulatePositionDropdown(int? selectedPositionId, int? departmentId)
+        {
+            var positions = _context.Positions.AsQueryable();
+            if (departmentId.HasValue)
+            {
+                positions = positions.Where(p => p.DepartmentId == departmentId.Value);
+            }
+            var positionList = await positions
+                .OrderBy(p => p.Name)
+                .Select(p => new { p.PositionId, p.Name })
+                .ToListAsync();
+            ViewBag.Positions = new SelectList(positionList, "PositionId", "Name", selectedPositionId);
+        }
+
+        public async Task<IActionResult> Index(string? searchString = null, int page = 1)
+        {
+            int pageSize = 10;
+
             IQueryable<Employee> employees = _context.Employees
                 .Include(e => e.User)
                 .Include(e => e.Shift)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
                 .Where(e => e.Status == EmploymentStatus.Active);
 
             if (!string.IsNullOrWhiteSpace(searchString))
@@ -54,28 +81,77 @@ namespace itpayroll.Controllers
                     (e.Shift != null && e.Shift.ShiftName.Contains(searchString)));
             }
 
-            var model = await employees.ToListAsync();
+            int totalEmployees = await employees.CountAsync();
+            var model = await employees
+                .OrderBy(e => e.EmployeeNumber)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             // Populate role badges
             var employeeRoles = new Dictionary<int, string>();
             foreach (var emp in model.Where(e => e.User != null))
             {
                 var roles = await _userManager.GetRolesAsync(emp.User!);
-                employeeRoles[emp.EmployeeId] = roles.FirstOrDefault() ?? "—";
+                employeeRoles[emp.EmployeeId] = roles.FirstOrDefault() ?? "-";
             }
             ViewBag.UserRoles = employeeRoles;
             ViewBag.CurrentFilter = searchString;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalEmployees / pageSize);
 
             return View(model);
         }
 
         public async Task<IActionResult> Create()
         {
-            await PopulateShiftDropdown(null);
             var currentRole = GetCurrentUserRole();
             var allowedRoles = RoleHierarchy.GetAllowedRoles(currentRole);
-            ViewBag.AllowedRoles = new SelectList(allowedRoles);
-            return View();
+            var model = new EmployeeViewModel
+            {
+                Role = allowedRoles.Contains(Roles.Employee)
+                    ? Roles.Employee
+                    : allowedRoles.FirstOrDefault() ?? Roles.Employee
+            };
+
+            await PopulateShiftDropdown(null);
+            await PopulateDepartmentDropdown(null);
+            await PopulatePositionDropdown(null, null);
+            ViewBag.AllowedRoles = new SelectList(allowedRoles, model.Role);
+            await PopulateRoleDefaults();
+            return View(model);
+        }
+
+        private async Task PopulateRoleDefaults()
+        {
+            var roleDefaults = new Dictionary<string, object?>();
+            var adminDept = await _context.Departments.FirstOrDefaultAsync(d => d.Name == "Administration");
+            var hrDept = await _context.Departments.FirstOrDefaultAsync(d => d.Name == "Human Resources");
+
+            if (adminDept != null)
+            {
+                roleDefaults["SuperAdmin"] = new
+                {
+                    departmentId = adminDept.DepartmentId,
+                    positionId = (await _context.Positions.FirstOrDefaultAsync(p => p.Name == "System Administrator" && p.DepartmentId == adminDept.DepartmentId))?.PositionId
+                };
+                roleDefaults["Admin"] = new
+                {
+                    departmentId = adminDept.DepartmentId,
+                    positionId = (await _context.Positions.FirstOrDefaultAsync(p => p.Name == "Admin Officer" && p.DepartmentId == adminDept.DepartmentId))?.PositionId
+                };
+            }
+
+            if (hrDept != null)
+            {
+                roleDefaults["HR"] = new
+                {
+                    departmentId = hrDept.DepartmentId,
+                    positionId = (await _context.Positions.FirstOrDefaultAsync(p => p.Name == "HR Officer" && p.DepartmentId == hrDept.DepartmentId))?.PositionId
+                };
+            }
+
+            ViewBag.RoleDefaults = System.Text.Json.JsonSerializer.Serialize(roleDefaults);
         }
 
         private string GetCurrentUserRole()
@@ -94,7 +170,6 @@ namespace itpayroll.Controllers
             var allowedRoles = RoleHierarchy.GetAllowedRoles(currentRole);
             ViewBag.AllowedRoles = new SelectList(allowedRoles);
 
-            // Remove auto-generated fields from ModelState
             ModelState.Remove(nameof(model.EmployeeNumber));
             ModelState.Remove(nameof(model.Email));
 
@@ -103,13 +178,6 @@ namespace itpayroll.Controllers
                 ModelState.AddModelError(string.Empty, "You are not authorized to assign this role.");
             }
 
-            // Role-specific validation
-            if (model.Role == Roles.Employee && model.BasicSalary <= 0)
-            {
-                ModelState.AddModelError(nameof(model.BasicSalary), "Basic salary is required and must be greater than zero.");
-            }
-
-            // Generate auto-values
             if (string.IsNullOrEmpty(model.EmployeeNumber))
                 model.EmployeeNumber = await GenerateEmployeeNumber();
 
@@ -121,71 +189,115 @@ namespace itpayroll.Controllers
 
             if (!ModelState.IsValid)
             {
-                await PopulateShiftDropdown(model.ShiftId);
+                await PopulateCreateDropdowns(model);
                 return View(model);
             }
 
-            var user = new ApplicationUser
+            try
             {
-                UserName = model.Email,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                CreatedBy = User.Identity?.Name ?? "System",
-                CreatedDate = DateTime.UtcNow,
-                IsActive = true,
-                MustChangePassword = true,
-                PasswordLastChanged = DateTime.UtcNow
-            };
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var createResult = await strategy.ExecuteAsync(async () =>
+                {
+                    await using var transaction = await _context.Database.BeginTransactionAsync();
 
-            var tempPassword = "Temp@" + Guid.NewGuid().ToString("N").Substring(0, 6);
+                var user = new ApplicationUser
+                {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    FirstName = model.FirstName,
+                    MiddleName = model.MiddleName,
+                    LastName = model.LastName,
+                    Suffix = model.Suffix,
+                    DateOfBirth = model.DateOfBirth?.Date,
+                    Gender = model.Gender,
+                    CivilStatus = model.CivilStatus,
+                    Nationality = model.Nationality,
+                    PhoneNumber = model.PhoneNumber,
+                    AlternatePhone = model.AlternatePhone,
+                    AddressStreet = model.AddressStreet,
+                    AddressBarangay = model.AddressBarangay,
+                    AddressCity = model.AddressCity,
+                    AddressProvince = model.AddressProvince,
+                    AddressZipCode = model.AddressZipCode,
+                    EmergencyContactName = model.EmergencyContactName,
+                    EmergencyContactRelationship = model.EmergencyContactRelationship,
+                    EmergencyContactPhone = model.EmergencyContactPhone,
+                    CreatedBy = User.Identity?.Name ?? "System",
+                    CreatedDate = DateTime.UtcNow,
+                    IsActive = true,
+                        MustChangePassword = true,
+                        PasswordLastChanged = DateTime.UtcNow
+                    };
 
-            var result = await _userManager.CreateAsync(user, tempPassword);
-            if (!result.Succeeded)
+                    var tempPassword = "Temp@" + Guid.NewGuid().ToString("N").Substring(0, 6);
+                    var userResult = await _userManager.CreateAsync(user, tempPassword);
+                    if (!userResult.Succeeded)
+                    {
+                        return (Succeeded: false, Result: userResult, CreatedEmail: (string?)null, TempPassword: (string?)null);
+                    }
+
+                    var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+                    if (!roleResult.Succeeded)
+                    {
+                        return (Succeeded: false, Result: roleResult, CreatedEmail: (string?)null, TempPassword: (string?)null);
+                    }
+
+                    var employee = new Employee
+                    {
+                    UserId = user.Id,
+                    EmployeeNumber = model.EmployeeNumber,
+                    Status = model.Status,
+                    BasicSalary = model.BasicSalary,
+                    HireDate = model.HireDate == default ? DateTime.UtcNow : model.HireDate,
+                    TerminationDate = model.TerminationDate,
+                    ShiftId = model.ShiftId,
+                    DepartmentId = model.DepartmentId,
+                    PositionId = model.PositionId,
+                    EmploymentType = model.EmploymentType,
+                    SalaryType = model.SalaryType,
+                    PayFrequency = model.PayFrequency,
+                    BankName = model.BankName,
+                    BankAccountNumber = model.BankAccountNumber,
+                    TIN = model.TIN,
+                    SSSNumber = model.SSSNumber,
+                    PhilHealthNumber = model.PhilHealthNumber,
+                    PagIBIGNumber = model.PagIBIGNumber,
+                    CreatedBy = User.Identity?.Name ?? "System"
+                };
+
+                    _context.Employees.Add(employee);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return (Succeeded: true, Result: IdentityResult.Success, CreatedEmail: user.Email, TempPassword: tempPassword);
+                });
+
+                if (!createResult.Succeeded)
+                {
+                    foreach (var error in createResult.Result.Errors)
+                        ModelState.AddModelError("", error.Description);
+                    await PopulateCreateDropdowns(model);
+                    return View(model);
+                }
+
+                ViewBag.CreatedEmail = createResult.CreatedEmail;
+                ViewBag.TempPassword = createResult.TempPassword;
+                return View("CreationSuccess", model);
+            }
+            catch (DbUpdateException)
             {
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError("", error.Description);
-                await PopulateShiftDropdown(model.ShiftId);
+                ModelState.AddModelError(string.Empty, "Employee could not be created because the employee number or linked account already exists.");
+                await PopulateCreateDropdowns(model);
                 return View(model);
             }
-
-            await _userManager.AddToRoleAsync(user, model.Role);
-
-            var employee = new Employee
-            {
-                UserId = user.Id,
-                EmployeeNumber = model.EmployeeNumber,
-                Status = model.Status,
-                BasicSalary = model.Role == Roles.Employee ? model.BasicSalary : 0,
-                HireDate = model.HireDate == default ? DateTime.UtcNow : model.HireDate,
-                TerminationDate = model.TerminationDate,
-                ShiftId = model.Role == Roles.Employee ? model.ShiftId : null,
-                Department = model.Department,
-                Position = model.Position,
-                EmploymentType = model.Role == Roles.Employee ? model.EmploymentType : null,
-                SalaryType = model.Role == Roles.Employee ? model.SalaryType : SalaryType.Monthly,
-                PayFrequency = model.Role == Roles.Employee ? model.PayFrequency : PayFrequency.Monthly,
-                BankName = model.Role == Roles.Employee ? model.BankName : null,
-                BankAccountNumber = model.Role == Roles.Employee ? model.BankAccountNumber : null,
-                TIN = model.Role == Roles.Employee ? model.TIN : null,
-                SSSNumber = model.Role == Roles.Employee ? model.SSSNumber : null,
-                PhilHealthNumber = model.Role == Roles.Employee ? model.PhilHealthNumber : null,
-                PagIBIGNumber = model.Role == Roles.Employee ? model.PagIBIGNumber : null,
-                CreatedBy = User.Identity?.Name ?? "System"
-            };
-
-            _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();
-
-            ViewBag.CreatedEmail = user.Email;
-            ViewBag.TempPassword = tempPassword;
-            return View("CreationSuccess", model);
         }
 
         public async Task<IActionResult> Edit(int id)
         {
             var employee = await _context.Employees
                 .Include(e => e.User)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
                 .FirstOrDefaultAsync(e => e.EmployeeId == id);
             if (employee == null)
                 return NotFound();
@@ -209,15 +321,31 @@ namespace itpayroll.Controllers
                 EmployeeId = employee.EmployeeId,
                 Role = currentRole,
                 FirstName = employee.User?.FirstName ?? string.Empty,
+                MiddleName = employee.User?.MiddleName,
                 LastName = employee.User?.LastName ?? string.Empty,
+                Suffix = employee.User?.Suffix,
+                DateOfBirth = employee.User?.DateOfBirth,
+                Gender = employee.User?.Gender,
+                CivilStatus = employee.User?.CivilStatus,
+                Nationality = employee.User?.Nationality ?? "Filipino",
+                PhoneNumber = employee.User?.PhoneNumber,
+                AlternatePhone = employee.User?.AlternatePhone,
+                AddressStreet = employee.User?.AddressStreet,
+                AddressBarangay = employee.User?.AddressBarangay,
+                AddressCity = employee.User?.AddressCity,
+                AddressProvince = employee.User?.AddressProvince,
+                AddressZipCode = employee.User?.AddressZipCode,
+                EmergencyContactName = employee.User?.EmergencyContactName,
+                EmergencyContactRelationship = employee.User?.EmergencyContactRelationship,
+                EmergencyContactPhone = employee.User?.EmergencyContactPhone,
                 EmployeeNumber = employee.EmployeeNumber,
                 Status = employee.Status,
                 BasicSalary = employee.BasicSalary,
                 HireDate = employee.HireDate,
                 TerminationDate = employee.TerminationDate,
                 ShiftId = employee.ShiftId,
-                Department = employee.Department,
-                Position = employee.Position,
+                DepartmentId = employee.DepartmentId,
+                PositionId = employee.PositionId,
                 EmploymentType = employee.EmploymentType,
                 SalaryType = employee.SalaryType,
                 PayFrequency = employee.PayFrequency,
@@ -230,6 +358,9 @@ namespace itpayroll.Controllers
             };
 
             await PopulateShiftDropdown(employee.ShiftId);
+            await PopulateDepartmentDropdown(employee.DepartmentId);
+            await PopulatePositionDropdown(employee.PositionId, employee.DepartmentId);
+            await PopulateRoleDefaults();
             return View(model);
         }
 
@@ -256,14 +387,12 @@ namespace itpayroll.Controllers
                 ModelState.AddModelError(string.Empty, "You are not authorized to assign this role.");
             }
 
-            if (model.Role == Roles.Employee && model.BasicSalary <= 0)
-            {
-                ModelState.AddModelError(nameof(model.BasicSalary), "Basic salary is required and must be greater than zero.");
-            }
-
             if (!ModelState.IsValid)
             {
                 await PopulateShiftDropdown(model.ShiftId);
+                await PopulateDepartmentDropdown(model.DepartmentId);
+                await PopulatePositionDropdown(model.PositionId, model.DepartmentId);
+                await PopulateRoleDefaults();
                 return View(model);
             }
 
@@ -278,7 +407,23 @@ namespace itpayroll.Controllers
             if (employee.User != null)
             {
                 employee.User.FirstName = model.FirstName;
+                employee.User.MiddleName = model.MiddleName;
                 employee.User.LastName = model.LastName;
+                employee.User.Suffix = model.Suffix;
+                employee.User.DateOfBirth = model.DateOfBirth?.Date;
+                employee.User.Gender = model.Gender;
+                employee.User.CivilStatus = model.CivilStatus;
+                employee.User.Nationality = model.Nationality;
+                employee.User.PhoneNumber = model.PhoneNumber;
+                employee.User.AlternatePhone = model.AlternatePhone;
+                employee.User.AddressStreet = model.AddressStreet;
+                employee.User.AddressBarangay = model.AddressBarangay;
+                employee.User.AddressCity = model.AddressCity;
+                employee.User.AddressProvince = model.AddressProvince;
+                employee.User.AddressZipCode = model.AddressZipCode;
+                employee.User.EmergencyContactName = model.EmergencyContactName;
+                employee.User.EmergencyContactRelationship = model.EmergencyContactRelationship;
+                employee.User.EmergencyContactPhone = model.EmergencyContactPhone;
                 employee.User.ModifiedBy = User.Identity?.Name ?? "System";
                 employee.User.ModifiedDate = DateTime.UtcNow;
             }
@@ -293,21 +438,21 @@ namespace itpayroll.Controllers
 
             employee.EmployeeNumber = model.EmployeeNumber;
             employee.Status = model.Status;
-            employee.BasicSalary = model.Role == Roles.Employee ? model.BasicSalary : 0;
+            employee.BasicSalary = model.BasicSalary;
             employee.HireDate = model.HireDate == default ? DateTime.UtcNow : model.HireDate;
             employee.TerminationDate = model.TerminationDate;
-            employee.ShiftId = model.Role == Roles.Employee ? model.ShiftId : null;
-            employee.Department = model.Department;
-            employee.Position = model.Position;
-            employee.EmploymentType = model.Role == Roles.Employee ? model.EmploymentType : null;
-            employee.SalaryType = model.Role == Roles.Employee ? model.SalaryType : SalaryType.Monthly;
-            employee.PayFrequency = model.Role == Roles.Employee ? model.PayFrequency : PayFrequency.Monthly;
-            employee.BankName = model.Role == Roles.Employee ? model.BankName : null;
-            employee.BankAccountNumber = model.Role == Roles.Employee ? model.BankAccountNumber : null;
-            employee.TIN = model.Role == Roles.Employee ? model.TIN : null;
-            employee.SSSNumber = model.Role == Roles.Employee ? model.SSSNumber : null;
-            employee.PhilHealthNumber = model.Role == Roles.Employee ? model.PhilHealthNumber : null;
-            employee.PagIBIGNumber = model.Role == Roles.Employee ? model.PagIBIGNumber : null;
+            employee.ShiftId = model.ShiftId;
+            employee.DepartmentId = model.DepartmentId;
+            employee.PositionId = model.PositionId;
+            employee.EmploymentType = model.EmploymentType;
+            employee.SalaryType = model.SalaryType;
+            employee.PayFrequency = model.PayFrequency;
+            employee.BankName = model.BankName;
+            employee.BankAccountNumber = model.BankAccountNumber;
+            employee.TIN = model.TIN;
+            employee.SSSNumber = model.SSSNumber;
+            employee.PhilHealthNumber = model.PhilHealthNumber;
+            employee.PagIBIGNumber = model.PagIBIGNumber;
             employee.ModifiedBy = User.Identity?.Name ?? "System";
             employee.ModifiedDate = DateTime.UtcNow;
 
@@ -326,7 +471,9 @@ namespace itpayroll.Controllers
         private async Task<string?> GetUserRoleAsync(int? employeeId)
         {
             if (employeeId == null) return null;
-            var employee = await _context.Employees.FindAsync(employeeId.Value);
+            var employee = await _context.Employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId.Value);
             if (employee?.User == null) return null;
             var roles = await _userManager.GetRolesAsync(employee.User);
             return roles.FirstOrDefault();
@@ -337,6 +484,8 @@ namespace itpayroll.Controllers
             var employee = await _context.Employees
                 .Include(e => e.User)
                 .Include(e => e.Shift)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
                 .FirstOrDefaultAsync(e => e.EmployeeId == id);
 
             if (employee == null)
@@ -394,6 +543,17 @@ namespace itpayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
+        public async Task<JsonResult> GetPositionsByDepartment(int departmentId)
+        {
+            var positions = await _context.Positions
+                .Where(p => p.DepartmentId == departmentId)
+                .OrderBy(p => p.Name)
+                .Select(p => new { p.PositionId, p.Name })
+                .ToListAsync();
+            return Json(positions);
+        }
+
         #region Helpers
         private static Dictionary<string, object?> BuildEmployeeAuditSnapshot(Employee employee)
         {
@@ -407,8 +567,10 @@ namespace itpayroll.Controllers
                 ["HireDate"] = employee.HireDate.ToString("yyyy-MM-dd"),
                 ["TerminationDate"] = employee.TerminationDate?.ToString("yyyy-MM-dd"),
                 ["ShiftId"] = employee.ShiftId,
-                ["Department"] = employee.Department,
-                ["Position"] = employee.Position,
+                ["DepartmentId"] = employee.DepartmentId,
+                ["PositionId"] = employee.PositionId,
+                ["Department"] = employee.Department?.Name,
+                ["Position"] = employee.Position?.Name,
                 ["EmploymentType"] = employee.EmploymentType?.ToString(),
                 ["SalaryType"] = employee.SalaryType.ToString(),
                 ["PayFrequency"] = employee.PayFrequency.ToString()
@@ -424,20 +586,40 @@ namespace itpayroll.Controllers
             return JsonSerializer.Serialize(new { Before = before, After = after, Changes = changes });
         }
 
+        private async Task PopulateCreateDropdowns(EmployeeViewModel model)
+        {
+            await PopulateShiftDropdown(model.ShiftId);
+            await PopulateDepartmentDropdown(model.DepartmentId);
+            await PopulatePositionDropdown(model.PositionId, model.DepartmentId);
+            await PopulateRoleDefaults();
+        }
+
         private async Task<string> GenerateEmployeeNumber()
         {
-            var lastEmployee = await _context.Employees
-                .OrderByDescending(e => e.EmployeeId)
-                .FirstOrDefaultAsync();
+            var year = DateTime.UtcNow.Year;
+            var prefix = $"EMP-{year}-";
+            var employeeNumbers = await _context.Employees
+                .Where(e => e.EmployeeNumber.StartsWith(prefix))
+                .Select(e => e.EmployeeNumber)
+                .ToListAsync();
 
-            int nextNumber = 1;
-            if (lastEmployee != null && lastEmployee.EmployeeNumber.StartsWith("EMP-"))
+            var nextNumber = 1;
+            foreach (var employeeNumber in employeeNumbers)
             {
-                var numberPart = lastEmployee.EmployeeNumber.Substring(4);
-                if (int.TryParse(numberPart, out int lastNum))
-                    nextNumber = lastNum + 1;
+                var numberPart = employeeNumber[prefix.Length..];
+                if (int.TryParse(numberPart, out var number) && number >= nextNumber)
+                    nextNumber = number + 1;
             }
-            return $"EMP-{nextNumber:D4}";
+
+            string candidate;
+            do
+            {
+                candidate = $"{prefix}{nextNumber:D3}";
+                nextNumber++;
+            }
+            while (await _context.Employees.AnyAsync(e => e.EmployeeNumber == candidate));
+
+            return candidate;
         }
 
         /// <summary>

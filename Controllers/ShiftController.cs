@@ -6,7 +6,7 @@ using itpayroll.Data;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin,HR")]
     public class ShiftController : Controller
     {
         private readonly ApplicationDbContext _context;

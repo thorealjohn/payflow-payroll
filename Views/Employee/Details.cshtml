@@ -1,14 +1,15 @@
+@model itpayroll.Models.Employee
 @using itpayroll.Areas.Identity.Data
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 @{
-    ViewData["Title"] = "Personnel Details";
+    ViewData["Title"] = "Employee Details";
     var userRoles = Model.User != null ? await UserManager.GetRolesAsync(Model.User) : new List<string>();
-    var role = userRoles.FirstOrDefault() ?? "—";
+    var role = userRoles.FirstOrDefault() ?? "-";
 }
 
 <div class="mb-4">
-    <h4 class="fw-bold mb-0">Personnel Details</h4>
+    <h4 class="fw-bold mb-0">Employee Details</h4>
     <small class="text-muted">View employee information</small>
 </div>
 
@@ -24,19 +25,19 @@
             <dt class="col-sm-3">Email</dt>
             <dd class="col-sm-9">@Model.User?.Email</dd>
 
-            <dt class="col-sm-3">Role</dt>
+            <dt class="col-sm-3">Access Role</dt>
             <dd class="col-sm-9"><span class="badge bg-info">@role</span></dd>
 
             <dt class="col-sm-3">Department</dt>
-            <dd class="col-sm-9">@(Model.Department ?? "—")</dd>
+            <dd class="col-sm-9">@(Model.Department?.Name ?? "-")</dd>
 
             <dt class="col-sm-3">Position</dt>
-            <dd class="col-sm-9">@(Model.Position ?? "—")</dd>
+            <dd class="col-sm-9">@(Model.Position?.Name ?? "-")</dd>
 
             @if (Model.BasicSalary > 0)
             {
                 <dt class="col-sm-3">Basic Salary</dt>
-                <dd class="col-sm-9">₱@Model.BasicSalary.ToString("N2")</dd>
+                <dd class="col-sm-9">PHP @Model.BasicSalary.ToString("N2")</dd>
             }
 
             <dt class="col-sm-3">Status</dt>

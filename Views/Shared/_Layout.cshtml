@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/brand.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/tom-select/tom-select.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/itpayroll.styles.css" asp-append-version="true" />
 </head>
 <body>
@@ -41,7 +42,7 @@
                                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Employees</a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" asp-controller="Employee" asp-action="Index">All Employees</a></li>
-                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
                                         {
                                             <li><a class="dropdown-item" asp-controller="Employee" asp-action="Create">Add Employee</a></li>
                                         }
@@ -61,7 +62,7 @@
                                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Payroll</a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" asp-controller="Payroll" asp-action="Index">Payroll Records</a></li>
-                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
                                         {
                                             <li><a class="dropdown-item" asp-controller="Payroll" asp-action="Process">Process Payroll</a></li>
                                         }
@@ -79,8 +80,12 @@
                             }
                             @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="UserManagement" asp-action="Index">User Management</a>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">System</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">Manage Users</a></li>
+                                        <li><a class="dropdown-item" asp-controller="UserManagement" asp-action="AuditLogs">Audit Logs</a></li>
+                                    </ul>
                                 </li>
                             }
                         }
@@ -119,7 +124,13 @@
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/tom-select/tom-select.complete.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.tom-select').forEach(el => new TomSelect(el));
+        });
+    </script>
 </body>
 </html>

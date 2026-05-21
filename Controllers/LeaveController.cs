@@ -27,7 +27,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(LeaveStatus? status, string? searchString = null, string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
+        public async Task<IActionResult> Index(LeaveStatus? status, string? searchString = null, string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null, int page = 1)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -61,13 +61,20 @@ namespace itpayroll.Controllers
                     l.Employee.EmployeeNumber.Contains(searchString)));
             }
 
+            int pageSize = 10;
+            int totalLeaveRequests = await query.CountAsync();
+
             ViewBag.CurrentFilter = searchString;
             ViewBag.Period = period;
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalLeaveRequests / pageSize);
 
             var leaveRequests = await query
                 .OrderByDescending(l => l.CreatedDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             ViewBag.SelectedStatus = status;

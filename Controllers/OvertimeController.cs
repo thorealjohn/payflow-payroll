@@ -25,7 +25,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(string searchString, string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
+        public async Task<IActionResult> Index(string searchString, string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null, int page = 1)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -53,14 +53,21 @@ namespace itpayroll.Controllers
                     o.Employee.EmployeeNumber.Contains(searchString)));
             }
 
+            int pageSize = 10;
+            int totalOvertimes = await overtimes.CountAsync();
+
             ViewBag.CurrentFilter = searchString;
             ViewBag.Period = period;
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalOvertimes / pageSize);
 
             var result = await overtimes
                 .OrderByDescending(o => o.Date)
                 .ThenBy(o => o.Status)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             return View(result);

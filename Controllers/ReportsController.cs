@@ -1,11 +1,14 @@
 using itpayroll.Data;
 using itpayroll.Models;
+using itpayroll.Services;
 using itpayroll.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 
 namespace itpayroll.Controllers
 {
@@ -13,10 +16,12 @@ namespace itpayroll.Controllers
     public class ReportsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPdfService _pdfService;
 
-        public ReportsController(ApplicationDbContext context)
+        public ReportsController(ApplicationDbContext context, IPdfService pdfService)
         {
             _context = context;
+            _pdfService = pdfService;
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
 
@@ -40,29 +45,11 @@ namespace itpayroll.Controllers
             var query = _context.Payrolls
                 .Include(p => p.Employee)
                 .ThenInclude(e => e.User)
+                .Include(p => p.Employee)
+                .ThenInclude(e => e.Department)
                 .AsQueryable();
 
-            if (from.HasValue)
-            {
-                query = query.Where(p => p.PeriodStart >= from.Value);
-            }
-            if (to.HasValue)
-            {
-                query = query.Where(p => p.PeriodEnd <= to.Value);
-            }
-
-            if (employeeId.HasValue)
-            {
-                query = query.Where(p => p.EmployeeId == employeeId.Value);
-            }
-            if (!string.IsNullOrWhiteSpace(department))
-            {
-                query = query.Where(p => p.Employee.Department == department);
-            }
-            if (!string.IsNullOrWhiteSpace(payrollStatus) && Enum.TryParse<PayrollStatus>(payrollStatus, out var parsedStatus))
-            {
-                query = query.Where(p => p.Status == parsedStatus);
-            }
+            query = ApplyPayrollFilters(query, from, to, employeeId, department, payrollStatus);
 
             var totalGrossPay = await query.SumAsync(p => p.GrossPay);
             var totalDeductions = await query.SumAsync(p => p.TotalDeductions);
@@ -136,20 +123,8 @@ namespace itpayroll.Controllers
             ViewBag.EarningsByPayroll = earningsByPayroll;
             ViewBag.DeductionsByPayroll = deductionsByPayroll;
             ViewBag.PayrollStatuses = Enum.GetNames(typeof(PayrollStatus)).ToList();
-            ViewBag.Employees = await _context.Employees
-                .Include(e => e.User)
-                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
-                .Select(e => new SelectListItem
-                {
-                    Value = e.EmployeeId.ToString(),
-                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
-                }).ToListAsync();
-            ViewBag.Departments = await _context.Employees
-                .Where(e => !string.IsNullOrWhiteSpace(e.Department))
-                .Select(e => e.Department!)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToListAsync();
+            await PopulateEmployeeDropdown();
+            await PopulateDepartmentDropdown();
 
             return View(payrolls);
         }
@@ -169,23 +144,13 @@ namespace itpayroll.Controllers
                 .ThenInclude(e => e.User)
                 .AsQueryable();
 
-            if (from.HasValue)
-                query = query.Where(p => p.PeriodStart >= from.Value);
-            if (to.HasValue)
-                query = query.Where(p => p.PeriodEnd <= to.Value);
-            if (employeeId.HasValue)
-                query = query.Where(p => p.EmployeeId == employeeId.Value);
-            if (!string.IsNullOrWhiteSpace(department))
-                query = query.Where(p => p.Employee.Department == department);
-            if (!string.IsNullOrWhiteSpace(payrollStatus) && Enum.TryParse<PayrollStatus>(payrollStatus, out var parsedStatus))
-                query = query.Where(p => p.Status == parsedStatus);
+            query = ApplyPayrollFilters(query, from, to, employeeId, department, payrollStatus);
 
             var payrolls = await query.OrderByDescending(p => p.PeriodStart).ToListAsync();
 
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Payroll Report");
 
-            // Header
             ws.Cells[1, 1].Value = "Employee Number";
             ws.Cells[1, 2].Value = "Employee Name";
             ws.Cells[1, 3].Value = "Period Start";
@@ -200,7 +165,6 @@ namespace itpayroll.Controllers
             headerRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
             headerRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
 
-            // Data
             int row = 2;
             foreach (var p in payrolls)
             {
@@ -221,6 +185,104 @@ namespace itpayroll.Controllers
             return File(package.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
+        public async Task<IActionResult> ExportPayrollPdf(
+            string period = "ThisMonth",
+            string customDateFrom = "",
+            string customDateTo = "",
+            int? employeeId = null,
+            string? department = null,
+            string? payrollStatus = null)
+        {
+            (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
+
+            var query = _context.Payrolls
+                .Include(p => p.Employee)
+                .ThenInclude(e => e.User)
+                .Include(p => p.Employee)
+                .ThenInclude(e => e.Department)
+                .AsQueryable();
+
+            query = ApplyPayrollFilters(query, from, to, employeeId, department, payrollStatus);
+
+            var payrolls = await query.OrderByDescending(p => p.PeriodStart).ToListAsync();
+            var totalGross = payrolls.Sum(p => p.GrossPay);
+            var totalDeductions = payrolls.Sum(p => p.TotalDeductions);
+            var totalNet = payrolls.Sum(p => p.NetPay);
+            var dateLabel = BuildDateRangeText(from, to);
+
+            var pdf = _pdfService.Generate(doc =>
+            {
+                doc.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header().Column(c =>
+                    {
+                        c.Item().Text("Payroll Report").Bold().FontSize(18).FontColor(Colors.Blue.Darken3);
+                        c.Item().Text($"Generated by: {User?.Identity?.Name ?? "System"} | {dateLabel}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                        c.Item().PaddingBottom(5).LineHorizontal(1);
+                    });
+
+                    page.Content().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Employee").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Period").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Gross Pay").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Deductions").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Net Pay").Bold().FontSize(9);
+                        });
+
+                        foreach (var p in payrolls)
+                        {
+                            var name = $"{p.Employee?.EmployeeNumber} - {p.Employee?.User?.FirstName} {p.Employee?.User?.LastName}";
+                            var periodStr = $"{p.PeriodStart:MMM dd, yyyy} - {p.PeriodEnd:MMM dd, yyyy}";
+                            table.Cell().Padding(2).Text(name).FontSize(8);
+                            table.Cell().Padding(2).Text(periodStr).FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"P{p.GrossPay:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"P{p.TotalDeductions:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"P{p.NetPay:N2}").FontSize(8);
+                        }
+
+                        table.Cell().Padding(2).Text("TOTALS").Bold().FontSize(9);
+                        table.Cell().Padding(2).Text("").FontSize(8);
+                        table.Cell().Padding(2).AlignRight().Text($"P{totalGross:N2}").Bold().FontSize(9);
+                        table.Cell().Padding(2).AlignRight().Text($"P{totalDeductions:N2}").Bold().FontSize(9);
+                        table.Cell().Padding(2).AlignRight().Text($"P{totalNet:N2}").Bold().FontSize(9);
+                    });
+
+                    page.Footer().Row(r =>
+                    {
+                        r.RelativeItem().AlignLeft().Text(x =>
+                        {
+                            x.Span($"Generated on {DateTime.Now:MMM dd, yyyy hh:mm tt}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                        });
+                        r.RelativeItem().AlignRight().Text(x =>
+                        {
+                            x.Span("Page ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" of ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
+                    });
+                });
+            });
+
+            return File(pdf, "application/pdf", $"PayrollReport_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+
         public async Task<IActionResult> AttendanceReport(
             DateTime? dateFrom,
             DateTime? dateTo,
@@ -231,28 +293,28 @@ namespace itpayroll.Controllers
             int pageSize = 10)
         {
             var query = _context.Attendances
-                .Include(a => a.Employee)
-                .ThenInclude(e => e.User)
+                .Include(a => a.Employee).ThenInclude(e => e.User)
+                .Include(a => a.Employee).ThenInclude(e => e.Department)
                 .Include(a => a.Shift)
                 .AsQueryable();
 
-            if (dateFrom.HasValue)
-                query = query.Where(a => a.Date >= dateFrom.Value);
-            if (dateTo.HasValue)
-                query = query.Where(a => a.Date <= dateTo.Value);
-            if (employeeId.HasValue)
-                query = query.Where(a => a.EmployeeId == employeeId.Value);
-            if (shiftId.HasValue)
-                query = query.Where(a => a.ShiftId == shiftId.Value);
-            if (!string.IsNullOrWhiteSpace(department))
-                query = query.Where(a => a.Employee.Department == department);
+            query = ApplyAttendanceFilters(query, dateFrom, dateTo, employeeId, shiftId, department);
 
-            var presentEmployees = await query.Select(a => a.EmployeeId).Distinct().CountAsync();
+            var presentEmployeeIds = await query.Select(a => a.EmployeeId).Distinct().ToListAsync();
+            var presentEmployees = presentEmployeeIds.Count;
+
+            var activeQuery = _context.Employees.Where(e => e.Status == EmploymentStatus.Active);
+            if (!string.IsNullOrWhiteSpace(department) && int.TryParse(department, out var deptId))
+                activeQuery = activeQuery.Where(e => e.DepartmentId == deptId);
+            if (employeeId.HasValue)
+                activeQuery = activeQuery.Where(e => e.EmployeeId == employeeId.Value);
+
+            var activeEmployees = await activeQuery.CountAsync();
+            var absentEmployees = Math.Max(0, activeEmployees - presentEmployees);
+
             var lateEmployees = await query.Where(a => a.LateMinutes > 0).Select(a => a.EmployeeId).Distinct().CountAsync();
             var averageHours = await query.Select(a => (double?)a.TotalHours).AverageAsync() ?? 0;
             var openLogs = await query.CountAsync(a => a.TimeOut == default || a.TimeOut <= a.TimeIn);
-            var activeEmployees = await _context.Employees.CountAsync(e => e.Status == EmploymentStatus.Active);
-            var absentEmployees = Math.Max(0, activeEmployees - presentEmployees);
             var attendanceRate = activeEmployees == 0 ? 0 : (presentEmployees * 100.0 / activeEmployees);
 
             var mostLateEmployee = await query
@@ -307,49 +369,32 @@ namespace itpayroll.Controllers
             ViewBag.MostOvertimeEmployee = mostOvertimeEmployee?.Name ?? "N/A";
             ViewBag.MostOvertimeHours = mostOvertimeEmployee?.OT ?? 0;
             ViewBag.HighestAttendanceEmployee = highestAttendanceRateEmployee?.Name ?? "N/A";
-            ViewBag.Employees = await _context.Employees
-                .Include(e => e.User)
-                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
-                .Select(e => new SelectListItem
-                {
-                    Value = e.EmployeeId.ToString(),
-                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
-                }).ToListAsync();
-            ViewBag.Shifts = await _context.Shifts
-                .Where(s => s.IsActive)
-                .OrderBy(s => s.ShiftName)
-                .Select(s => new SelectListItem { Value = s.ShiftId.ToString(), Text = s.ShiftName })
-                .ToListAsync();
-            ViewBag.Departments = await _context.Employees
-                .Where(e => !string.IsNullOrWhiteSpace(e.Department))
-                .Select(e => e.Department!)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToListAsync();
+            await PopulateEmployeeDropdown();
+            await PopulateShiftDropdown();
+            await PopulateDepartmentDropdown();
 
             return View(attendances);
         }
 
-        public async Task<IActionResult> ExportAttendanceExcel(DateTime? dateFrom, DateTime? dateTo, int? employeeId)
+        public async Task<IActionResult> ExportAttendanceExcel(
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            int? employeeId,
+            int? shiftId = null,
+            string? department = null)
         {
             var query = _context.Attendances
                 .Include(a => a.Employee)
                 .ThenInclude(e => e.User)
                 .AsQueryable();
 
-            if (dateFrom.HasValue)
-                query = query.Where(a => a.Date >= dateFrom.Value);
-            if (dateTo.HasValue)
-                query = query.Where(a => a.Date <= dateTo.Value);
-            if (employeeId.HasValue)
-                query = query.Where(a => a.EmployeeId == employeeId.Value);
+            query = ApplyAttendanceFilters(query, dateFrom, dateTo, employeeId, shiftId, department);
 
             var attendances = await query.OrderByDescending(a => a.Date).ToListAsync();
 
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Attendance Report");
 
-            // Header
             ws.Cells[1, 1].Value = "Employee Number";
             ws.Cells[1, 2].Value = "Employee Name";
             ws.Cells[1, 3].Value = "Date";
@@ -388,6 +433,95 @@ namespace itpayroll.Controllers
             return File(package.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
+        public async Task<IActionResult> ExportAttendancePdf(
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            int? employeeId,
+            int? shiftId = null,
+            string? department = null)
+        {
+            var query = _context.Attendances
+                .Include(a => a.Employee)
+                .ThenInclude(e => e.User)
+                .AsQueryable();
+
+            query = ApplyAttendanceFilters(query, dateFrom, dateTo, employeeId, shiftId, department);
+
+            var attendances = await query.OrderByDescending(a => a.Date).ToListAsync();
+            var dateLabel = BuildDateRangeText(dateFrom, dateTo);
+
+            var pdf = _pdfService.Generate(doc =>
+            {
+                doc.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header().Column(c =>
+                    {
+                        c.Item().Text("Attendance Report").Bold().FontSize(18).FontColor(Colors.Blue.Darken3);
+                        c.Item().Text($"Generated by: {User?.Identity?.Name ?? "System"} | {dateLabel}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                        c.Item().PaddingBottom(5).LineHorizontal(1);
+                    });
+
+                    page.Content().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Employee").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Date").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Time In").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Time Out").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Total Hrs").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Late (min)").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Day Type").Bold().FontSize(9);
+                        });
+
+                        foreach (var a in attendances)
+                        {
+                            var name = $"{a.Employee?.EmployeeNumber} - {a.Employee?.User?.FirstName} {a.Employee?.User?.LastName}";
+                            table.Cell().Padding(2).Text(name).FontSize(8);
+                            table.Cell().Padding(2).Text(a.Date.ToString("MMM dd, yyyy")).FontSize(8);
+                            table.Cell().Padding(2).Text(a.TimeIn.ToString(@"hh\:mm")).FontSize(8);
+                            table.Cell().Padding(2).Text(a.TimeOut.ToString(@"hh\:mm")).FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"{a.TotalHours:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"{a.LateMinutes}").FontSize(8);
+                            table.Cell().Padding(2).Text(a.DayType.ToString()).FontSize(8);
+                        }
+                    });
+
+                    page.Footer().Row(r =>
+                    {
+                        r.RelativeItem().AlignLeft().Text(x =>
+                        {
+                            x.Span($"Generated on {DateTime.Now:MMM dd, yyyy hh:mm tt}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                        });
+                        r.RelativeItem().AlignRight().Text(x =>
+                        {
+                            x.Span("Page ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" of ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
+                    });
+                });
+            });
+
+            return File(pdf, "application/pdf", $"AttendanceReport_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+
         public async Task<IActionResult> EmployeeReport(
             string? search = null,
             string? department = null,
@@ -399,31 +533,12 @@ namespace itpayroll.Controllers
             var query = _context.Employees
                 .Include(e => e.User)
                 .Include(e => e.Shift)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
                 .Where(e => e.User != null)
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(e =>
-                    e.EmployeeNumber.Contains(search) ||
-                    (e.User != null && (
-                        e.User.FirstName.Contains(search) ||
-                        e.User.LastName.Contains(search) ||
-                        (e.User.Email != null && e.User.Email.Contains(search)))));
-            }
-            if (!string.IsNullOrWhiteSpace(department))
-            {
-                query = query.Where(e => e.Department == department);
-            }
-            if (!string.IsNullOrWhiteSpace(employmentType) && Enum.TryParse<EmploymentType>(employmentType, out var parsedType))
-            {
-                query = query.Where(e => e.EmploymentType == parsedType);
-            }
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EmploymentStatus>(status, out var parsedStatus))
-            {
-                query = query.Where(e => e.Status == parsedStatus);
-            }
-
+            query = ApplyEmployeeFilters(query, search, department, employmentType, status);
             query = query.Where(e =>
                 !(string.IsNullOrWhiteSpace(e.User!.FirstName) && string.IsNullOrWhiteSpace(e.User.LastName)) &&
                 !string.IsNullOrWhiteSpace(e.EmployeeNumber));
@@ -431,8 +546,8 @@ namespace itpayroll.Controllers
             var totalEmployees = await query.CountAsync();
             var activeEmployees = await query.CountAsync(e => e.Status == EmploymentStatus.Active);
             var departments = await query
-                .Where(e => !string.IsNullOrWhiteSpace(e.Department))
-                .Select(e => e.Department!)
+                .Where(e => e.DepartmentId != null)
+                .Select(e => e.DepartmentId)
                 .Distinct()
                 .CountAsync();
             var monthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -464,31 +579,35 @@ namespace itpayroll.Controllers
             ViewBag.ActiveEmployees = activeEmployees;
             ViewBag.DepartmentsCount = departments;
             ViewBag.NewHires = newHires;
-            ViewBag.Departments = await _context.Employees
-                .Where(e => !string.IsNullOrWhiteSpace(e.Department))
-                .Select(e => e.Department!)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToListAsync();
+            await PopulateDepartmentDropdown();
             ViewBag.EmploymentTypes = Enum.GetNames(typeof(EmploymentType)).ToList();
             ViewBag.EmploymentStatuses = Enum.GetNames(typeof(EmploymentStatus)).ToList();
 
             return View(employees);
         }
 
-        public async Task<IActionResult> ExportEmployeeExcel()
+        public async Task<IActionResult> ExportEmployeeExcel(
+            string? search = null,
+            string? department = null,
+            string? employmentType = null,
+            string? status = null)
         {
-            var employees = await _context.Employees
+            var query = _context.Employees
                 .Include(e => e.User)
                 .Include(e => e.Shift)
-                .Where(e => e.Status == EmploymentStatus.Active)
-                .OrderBy(e => e.EmployeeNumber)
-                .ToListAsync();
+                .Where(e => e.User != null)
+                .AsQueryable();
+
+            query = ApplyEmployeeFilters(query, search, department, employmentType, status);
+            query = query.Where(e =>
+                !(string.IsNullOrWhiteSpace(e.User!.FirstName) && string.IsNullOrWhiteSpace(e.User.LastName)) &&
+                !string.IsNullOrWhiteSpace(e.EmployeeNumber));
+
+            var employees = await query.OrderBy(e => e.EmployeeNumber).ToListAsync();
 
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Employee Report");
 
-            // Header
             ws.Cells[1, 1].Value = "Employee Number";
             ws.Cells[1, 2].Value = "Name";
             ws.Cells[1, 3].Value = "Email";
@@ -521,22 +640,197 @@ namespace itpayroll.Controllers
             return File(package.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
+        public async Task<IActionResult> ExportEmployeePdf(
+            string? search = null,
+            string? department = null,
+            string? employmentType = null,
+            string? status = null)
+        {
+            var query = _context.Employees
+                .Include(e => e.User)
+                .Include(e => e.Shift)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
+                .Where(e => e.User != null)
+                .AsQueryable();
+
+            query = ApplyEmployeeFilters(query, search, department, employmentType, status);
+            query = query.Where(e =>
+                !(string.IsNullOrWhiteSpace(e.User!.FirstName) && string.IsNullOrWhiteSpace(e.User.LastName)) &&
+                !string.IsNullOrWhiteSpace(e.EmployeeNumber));
+
+            var employees = await query.OrderBy(e => e.EmployeeNumber).ToListAsync();
+
+            var pdf = _pdfService.Generate(doc =>
+            {
+                doc.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header().Column(c =>
+                    {
+                        c.Item().Text("Employee Report").Bold().FontSize(18).FontColor(Colors.Blue.Darken3);
+                        c.Item().Text($"Generated by: {User?.Identity?.Name ?? "System"}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                        c.Item().PaddingBottom(5).LineHorizontal(1);
+                    });
+
+                    page.Content().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(3);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Employee #").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Name").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Department").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Type").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Salary").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Hire Date").Bold().FontSize(9);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Status").Bold().FontSize(9);
+                        });
+
+                        foreach (var e in employees)
+                        {
+                            table.Cell().Padding(2).Text(e.EmployeeNumber).FontSize(8);
+                            table.Cell().Padding(2).Text($"{e.User?.FirstName} {e.User?.LastName}").FontSize(8);
+                            table.Cell().Padding(2).Text(e.Department?.Name ?? "N/A").FontSize(8);
+                            table.Cell().Padding(2).Text(e.EmploymentType?.ToString() ?? "N/A").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"P{e.BasicSalary:N2}").FontSize(8);
+                            table.Cell().Padding(2).Text(e.HireDate.ToString("MMM dd, yyyy")).FontSize(8);
+                            table.Cell().Padding(2).Text(e.Status.ToString()).FontSize(8);
+                        }
+                    });
+
+                    page.Footer().Row(r =>
+                    {
+                        r.RelativeItem().AlignLeft().Text(x =>
+                        {
+                            x.Span($"Generated on {DateTime.Now:MMM dd, yyyy hh:mm tt}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                        });
+                        r.RelativeItem().AlignRight().Text(x =>
+                        {
+                            x.Span("Page ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" of ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
+                    });
+                });
+            });
+
+            return File(pdf, "application/pdf", $"EmployeeReport_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+
+        private static IQueryable<Payroll> ApplyPayrollFilters(
+            IQueryable<Payroll> query,
+            DateTime? from, DateTime? to,
+            int? employeeId, string? department, string? payrollStatus)
+        {
+            if (from.HasValue)
+                query = query.Where(p => p.PeriodStart >= from.Value);
+            if (to.HasValue)
+                query = query.Where(p => p.PeriodEnd <= to.Value);
+            if (employeeId.HasValue)
+                query = query.Where(p => p.EmployeeId == employeeId.Value);
+            if (!string.IsNullOrWhiteSpace(department) && int.TryParse(department, out var deptId))
+                query = query.Where(p => p.Employee.DepartmentId == deptId);
+            if (!string.IsNullOrWhiteSpace(payrollStatus) && Enum.TryParse<PayrollStatus>(payrollStatus, out var parsedStatus))
+                query = query.Where(p => p.Status == parsedStatus);
+            return query;
+        }
+
+        private static IQueryable<Attendance> ApplyAttendanceFilters(
+            IQueryable<Attendance> query,
+            DateTime? dateFrom, DateTime? dateTo,
+            int? employeeId, int? shiftId, string? department)
+        {
+            if (dateFrom.HasValue)
+                query = query.Where(a => a.Date >= dateFrom.Value);
+            if (dateTo.HasValue)
+                query = query.Where(a => a.Date <= dateTo.Value);
+            if (employeeId.HasValue)
+                query = query.Where(a => a.EmployeeId == employeeId.Value);
+            if (shiftId.HasValue)
+                query = query.Where(a => a.ShiftId == shiftId.Value);
+            if (!string.IsNullOrWhiteSpace(department) && int.TryParse(department, out var deptId))
+                query = query.Where(a => a.Employee.DepartmentId == deptId);
+            return query;
+        }
+
+        private static IQueryable<Employee> ApplyEmployeeFilters(
+            IQueryable<Employee> query,
+            string? search,
+            string? department,
+            string? employmentType,
+            string? status)
+        {
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(e =>
+                    e.EmployeeNumber.Contains(search) ||
+                    (e.User != null && (
+                        e.User.FirstName.Contains(search) ||
+                        e.User.LastName.Contains(search) ||
+                        (e.User.Email != null && e.User.Email.Contains(search)))));
+            }
+            if (!string.IsNullOrWhiteSpace(department) && int.TryParse(department, out var deptId))
+                query = query.Where(e => e.DepartmentId == deptId);
+            if (!string.IsNullOrWhiteSpace(employmentType) && Enum.TryParse<EmploymentType>(employmentType, out var parsedType))
+                query = query.Where(e => e.EmploymentType == parsedType);
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EmploymentStatus>(status, out var parsedStatus))
+                query = query.Where(e => e.Status == parsedStatus);
+            return query;
+        }
+
+        private async Task PopulateEmployeeDropdown()
+        {
+            ViewBag.Employees = await _context.Employees
+                .Include(e => e.User)
+                .Where(e => e.Status == EmploymentStatus.Active && e.User != null)
+                .Select(e => new SelectListItem
+                {
+                    Value = e.EmployeeId.ToString(),
+                    Text = $"{e.EmployeeNumber} - {e.User!.FirstName} {e.User.LastName}"
+                }).ToListAsync();
+        }
+
+        private async Task PopulateDepartmentDropdown()
+        {
+            ViewBag.Departments = await _context.Departments
+                .OrderBy(d => d.Name)
+                .Select(d => new SelectListItem { Value = d.DepartmentId.ToString(), Text = d.Name })
+                .ToListAsync();
+        }
+
+        private async Task PopulateShiftDropdown()
+        {
+            ViewBag.Shifts = await _context.Shifts
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.ShiftName)
+                .Select(s => new SelectListItem { Value = s.ShiftId.ToString(), Text = s.ShiftName })
+                .ToListAsync();
+        }
+
         private static string BuildDateRangeText(DateTime? from, DateTime? to)
         {
             if (from.HasValue && to.HasValue)
-            {
                 return $"{from.Value:MMM dd, yyyy} - {to.Value:MMM dd, yyyy}";
-            }
             if (from.HasValue)
-            {
                 return $"From {from.Value:MMM dd, yyyy}";
-            }
             if (to.HasValue)
-            {
                 return $"Until {to.Value:MMM dd, yyyy}";
-            }
             return "All dates";
         }
     }
 }
-           

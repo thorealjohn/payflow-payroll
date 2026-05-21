@@ -52,7 +52,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
+        public async Task<IActionResult> Index(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null, int page = 1)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -71,14 +71,21 @@ namespace itpayroll.Controllers
                 query = query.Where(a => a.Date <= to.Value);
             }
 
+            int pageSize = 10;
+            int totalAttendances = await query.CountAsync();
+
             var attendances = await query
                 .OrderByDescending(a => a.Date)
                 .ThenBy(a => a.TimeIn)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             ViewBag.Period = period;
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalAttendances / pageSize);
             return View(attendances);
         }
 

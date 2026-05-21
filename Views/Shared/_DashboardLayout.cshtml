@@ -29,6 +29,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/brand.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/tom-select/tom-select.bootstrap5.min.css" />
 </head>
 <body>
 
@@ -44,7 +45,7 @@
             <span class="text">Dashboard</span>
         </a>
 
-        @if (User.IsInRole("SuperAdmin"))
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
         {
             bool isUsersSection = currentController == "UserManagement";
             <div class="sidebar-accordion">
@@ -78,6 +79,26 @@
                 <i class="fas fa-clock"></i>
                 <span class="text">Shifts</span>
             </a>
+        }
+
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
+        {
+            bool isOrgSection = currentController == "Department" || currentController == "Position";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isOrgSection ? "active" : "")" data-bs-toggle="collapse" href="#orgCollapse" role="button" aria-expanded="@(isOrgSection ? "true" : "false")">
+                    <i class="fas fa-sitemap"></i>
+                    <span class="text">Organization</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isOrgSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isOrgSection ? "show" : "")" id="orgCollapse">
+                    <a asp-controller="Department" asp-action="Index" class="nav-link @(currentController == "Department" ? "active" : "")">
+                        <span class="text">Departments</span>
+                    </a>
+                    <a asp-controller="Position" asp-action="Index" class="nav-link @(currentController == "Position" ? "active" : "")">
+                        <span class="text">Positions</span>
+                    </a>
+                </div>
+            </div>
         }
 
         @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
@@ -306,12 +327,14 @@
         </div>
     </div>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/tom-select/tom-select.complete.min.js"></script>
     <script>
         // Wait for full page load
         document.addEventListener("DOMContentLoaded", function() {
             initTheme();
             initSidebar();
             initSecurityPasswordModal();
+            initTomSelect();
 
             // Prevent dropdown from closing when interacting with dark mode toggle
             const themeToggle = document.getElementById('themeToggle');
@@ -319,6 +342,10 @@
                 themeToggle.addEventListener('click', (e) => e.stopPropagation());
             }
         });
+
+        function initTomSelect() {
+            document.querySelectorAll('.tom-select').forEach(el => new TomSelect(el));
+        }
 
         function toggleDarkMode() {
             const root = document.documentElement;
@@ -410,7 +437,7 @@
         window.toggleDarkMode = toggleDarkMode;
 
         function initSecurityPasswordModal() {
-            const sensitiveActions = ['Edit', 'Delete', 'SoftDelete', 'Release', 'Void', 'Approve', 'Reject', 'Process'];
+            const sensitiveActions = ['Edit', 'Delete', 'SoftDelete', 'Release', 'Void', 'Approve', 'Reject', 'Process', 'ResetPassword'];
             const modalElement = document.getElementById('securityPasswordModal');
             const input = document.getElementById('securityPasswordInput');
             const error = document.getElementById('securityPasswordError');

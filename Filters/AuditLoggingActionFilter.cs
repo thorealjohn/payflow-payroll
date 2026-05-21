@@ -80,7 +80,27 @@ namespace itpayroll.Filters
                 "SecurityPassword",
                 "OldPassword",
                 "NewPassword",
-                "ConfirmPassword"
+                "ConfirmPassword",
+                "FirstName",
+                "LastName",
+                "MiddleName",
+                "PhoneNumber",
+                "AlternatePhone",
+                "BankName",
+                "BankAccountNumber",
+                "BasicSalary",
+                "TIN",
+                "SSSNumber",
+                "PhilHealthNumber",
+                "PagIBIGNumber",
+                "AddressStreet",
+                "AddressBarangay",
+                "AddressCity",
+                "AddressProvince",
+                "AddressZipCode",
+                "EmergencyContactName",
+                "EmergencyContactRelationship",
+                "EmergencyContactPhone"
             };
 
             var values = context.HttpContext.Request.Form

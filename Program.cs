@@ -96,8 +96,15 @@ builder.Services.AddScoped<PayrollService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.MaxAge = TimeSpan.FromHours(8);
+});
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddSingleton<IPdfService, PdfService>();
 
 builder.Services.Configure<BrandingOptions>(builder.Configuration.GetSection(BrandingOptions.SectionName));
 builder.Services.PostConfigure<BrandingOptions>(o =>
@@ -143,30 +150,57 @@ using (var scope = app.Services.CreateScope())
 
             if (usersNeedingEmployees.Count > 0)
             {
-                var lastEmployee = await context.Employees
-                    .OrderByDescending(e => e.EmployeeId)
-                    .FirstOrDefaultAsync();
+                var adminDeptId = (await context.Departments.FirstOrDefaultAsync(d => d.Name == "Administration"))?.DepartmentId;
+                var hrDeptId = (await context.Departments.FirstOrDefaultAsync(d => d.Name == "Human Resources"))?.DepartmentId;
+                var hrPositionId = hrDeptId.HasValue
+                    ? (await context.Positions.FirstOrDefaultAsync(p => p.Name == "HR Officer" && p.DepartmentId == hrDeptId.Value))?.PositionId
+                    : null;
+                var adminPositionId = adminDeptId.HasValue
+                    ? (await context.Positions.FirstOrDefaultAsync(p => p.Name == "Admin Officer" && p.DepartmentId == adminDeptId.Value))?.PositionId
+                    : null;
 
-                var nextNumber = 1;
-                if (lastEmployee?.EmployeeNumber?.StartsWith("EMP-") == true
-                    && int.TryParse(lastEmployee.EmployeeNumber[4..], out var lastNum))
-                    nextNumber = lastNum + 1;
+                var accessNumberCounters = new Dictionary<string, int>();
+                async Task<string> GenerateAccessEmployeeNumber(string roleName)
+                {
+                    var employeeNumberPrefix = roleName == "HR" ? "HR" : "ADM";
+                    var prefix = $"{employeeNumberPrefix}-{DateTime.UtcNow.Year}-";
+                    if (accessNumberCounters.TryGetValue(prefix, out var cachedNextNumber))
+                    {
+                        accessNumberCounters[prefix] = cachedNextNumber + 1;
+                        return $"{prefix}{cachedNextNumber:D3}";
+                    }
+
+                    var existingNumbers = await context.Employees
+                        .Where(e => e.EmployeeNumber.StartsWith(prefix))
+                        .Select(e => e.EmployeeNumber)
+                        .ToListAsync();
+
+                    var nextNumber = 1;
+                    foreach (var employeeNumber in existingNumbers)
+                    {
+                        var numberPart = employeeNumber[prefix.Length..];
+                        if (int.TryParse(numberPart, out var number) && number >= nextNumber)
+                            nextNumber = number + 1;
+                    }
+
+                    accessNumberCounters[prefix] = nextNumber + 1;
+                    return $"{prefix}{nextNumber:D3}";
+                }
 
                 foreach (var (user, roleName) in usersNeedingEmployees)
                 {
                     context.Employees.Add(new itpayroll.Models.Employee
                     {
                         UserId = user.Id,
-                        EmployeeNumber = $"EMP-{nextNumber:D4}",
+                        EmployeeNumber = await GenerateAccessEmployeeNumber(roleName),
                         BasicSalary = 0,
                         HireDate = user.CreatedDate != default ? user.CreatedDate : DateTime.UtcNow,
                         Status = itpayroll.Models.EmploymentStatus.Active,
-                        Department = roleName == "HR" ? "Human Resources" : null,
-                        Position = roleName == "HR" ? "HR Staff" : null,
+                        DepartmentId = roleName == "HR" ? hrDeptId : (roleName == "Admin" ? adminDeptId : null),
+                        PositionId = roleName == "HR" ? hrPositionId : (roleName == "Admin" ? adminPositionId : null),
                         CreatedBy = "System",
                         CreatedDate = DateTime.UtcNow
                     });
-                    nextNumber++;
                 }
 
                 await context.SaveChangesAsync();

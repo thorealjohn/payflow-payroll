@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace itpayroll.Controllers
 {
@@ -302,6 +303,8 @@ namespace itpayroll.Controllers
             var userId = user?.Id;
             var employee = await _context.Employees
                 .Include(e => e.Shift)
+                .Include(e => e.Department)
+                .Include(e => e.Position)
                 .FirstOrDefaultAsync(e => e.UserId == userId);
 
             // Auto-create Employee record if missing but user is in Employee role
@@ -323,6 +326,8 @@ namespace itpayroll.Controllers
                 // Reload with Shift included
                 employee = await _context.Employees
                     .Include(e => e.Shift)
+                    .Include(e => e.Department)
+                    .Include(e => e.Position)
                     .FirstOrDefaultAsync(e => e.UserId == userId);
             }
 
@@ -355,8 +360,10 @@ namespace itpayroll.Controllers
                 EmergencyContactPhone = user?.EmergencyContactPhone,
                 ProfilePicturePath = user?.ProfilePicturePath,
                 EmployeeNumber = employee.EmployeeNumber,
-                Department = employee.Department,
-                Position = employee.Position,
+                Department = employee.Department?.Name,
+                Position = employee.Position?.Name,
+                DepartmentId = employee.DepartmentId,
+                PositionId = employee.PositionId,
                 EmploymentType = employee.EmploymentType,
                 BasicSalary = employee.BasicSalary,
                 SalaryType = employee.SalaryType,
@@ -373,6 +380,14 @@ namespace itpayroll.Controllers
             };
 
             ViewBag.User = user;
+            ViewBag.Departments = new SelectList(
+                await _context.Departments.OrderBy(d => d.Name).Select(d => new { d.DepartmentId, d.Name }).ToListAsync(),
+                "DepartmentId", "Name", employee.DepartmentId);
+            ViewBag.Positions = new SelectList(
+                employee.DepartmentId.HasValue
+                    ? await _context.Positions.Where(p => p.DepartmentId == employee.DepartmentId.Value).OrderBy(p => p.Name).Select(p => new { p.PositionId, p.Name }).ToListAsync()
+                    : new List<object>(),
+                "PositionId", "Name", employee.PositionId);
             return View(model);
         }
 
@@ -435,8 +450,8 @@ namespace itpayroll.Controllers
             }
 
             // Update employee info (HR/Admin only)
-            employee.Department = model.Department;
-            employee.Position = model.Position;
+            employee.DepartmentId = model.DepartmentId;
+            employee.PositionId = model.PositionId;
             employee.EmploymentType = model.EmploymentType;
             employee.BasicSalary = model.BasicSalary;
             employee.SalaryType = model.SalaryType;

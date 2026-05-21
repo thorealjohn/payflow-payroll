@@ -66,7 +66,8 @@ namespace itpayroll.Models
         Update,
         Delete,
         PayrollProcess,
-        FailedLogin
+        FailedLogin,
+        PasswordReset
     }
 }
 

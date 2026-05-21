@@ -5,13 +5,20 @@ namespace itpayroll.ViewModels
 {
     public class ProfileViewModel
     {
+        [Required]
         [Display(Name = "First Name")]
+        [RegularExpression(@"^[a-zA-Z\s\-']+$", ErrorMessage = "Only letters, spaces, hyphens, and apostrophes allowed")]
+        [MaxLength(50)]
         public string FirstName { get; set; } = string.Empty;
 
         [Display(Name = "Middle Name")]
+        [MaxLength(50)]
         public string? MiddleName { get; set; }
 
+        [Required]
         [Display(Name = "Last Name")]
+        [RegularExpression(@"^[a-zA-Z\s\-']+$", ErrorMessage = "Only letters, spaces, hyphens, and apostrophes allowed")]
+        [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
 
         [Display(Name = "Suffix")]
@@ -33,6 +40,8 @@ namespace itpayroll.ViewModels
         public string Email { get; set; } = string.Empty;
 
         [Display(Name = "Phone Number")]
+        [Phone]
+        [MaxLength(20)]
         public string PhoneNumber { get; set; } = string.Empty;
 
         [Display(Name = "Alternate Phone")]
@@ -70,6 +79,10 @@ namespace itpayroll.ViewModels
 
         [Display(Name = "Position")]
         public string? Position { get; set; }
+
+        public int? DepartmentId { get; set; }
+
+        public int? PositionId { get; set; }
 
         [Display(Name = "Employment Type")]
         public EmploymentType? EmploymentType { get; set; }

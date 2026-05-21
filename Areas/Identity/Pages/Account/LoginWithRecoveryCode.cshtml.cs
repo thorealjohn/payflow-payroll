@@ -104,6 +104,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
                 await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
 
                 _logger.LogInformation("User with ID '{UserId}' logged in with a recovery code.", user.Id);
+                returnUrl = NormalizeReturnUrl(returnUrl);
 
                 if (string.IsNullOrEmpty(returnUrl))
                 {
@@ -123,6 +124,16 @@ namespace itpayroll.Areas.Identity.Pages.Account
                 ModelState.AddModelError(string.Empty, "Invalid recovery code entered.");
                 return Page();
             }
+        }
+
+        private string NormalizeReturnUrl(string returnUrl)
+        {
+            if (string.IsNullOrWhiteSpace(returnUrl) || returnUrl == Url.Content("~/") || returnUrl == "/")
+            {
+                return string.Empty;
+            }
+
+            return Url.IsLocalUrl(returnUrl) ? returnUrl : string.Empty;
         }
     }
 }

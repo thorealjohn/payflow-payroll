@@ -106,6 +106,12 @@
                                     <ul class="dropdown-menu dropdown-menu-end">
 
                                         <li>
+                                            <a asp-action="ResetPassword" asp-route-id="@user.Id" class="dropdown-item">
+                                                Reset Password
+                                            </a>
+                                        </li>
+
+                                        <li>
                                             <form asp-action="ToggleStatus" asp-route-id="@user.Id" method="post">
                                                 <button type="submit" class="dropdown-item">
                                                     @(user.IsActive ? "Deactivate" : "Activate")

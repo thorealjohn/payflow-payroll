@@ -99,7 +99,7 @@ namespace itpayroll.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            returnUrl = returnUrl ?? Url.Content("~/");
+            returnUrl = NormalizeReturnUrl(returnUrl);
 
             var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
             if (user == null)
@@ -139,6 +139,16 @@ namespace itpayroll.Areas.Identity.Pages.Account
                 ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
                 return Page();
             }
+        }
+
+        private string NormalizeReturnUrl(string returnUrl)
+        {
+            if (string.IsNullOrWhiteSpace(returnUrl) || returnUrl == Url.Content("~/") || returnUrl == "/")
+            {
+                return string.Empty;
+            }
+
+            return Url.IsLocalUrl(returnUrl) ? returnUrl : string.Empty;
         }
     }
 }

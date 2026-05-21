@@ -1,0 +1,36 @@
+@model itpayroll.Models.Position
+@{
+    ViewData["Title"] = "Delete Position";
+    var employeeCount = ViewBag.EmployeeCount ?? 0;
+}
+
+<h4 class="mb-4 fw-bold">Delete Position</h4>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Department</dt>
+            <dd class="col-sm-9">@Model.Department?.Name</dd>
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">@(Model.Description ?? "-")</dd>
+            <dt class="col-sm-3">Employees</dt>
+            <dd class="col-sm-9">@employeeCount</dd>
+        </dl>
+
+        @if (employeeCount > 0)
+        {
+            <div class="alert alert-warning">This position is assigned to employees and cannot be deleted.</div>
+            <a asp-action="Index" class="btn btn-secondary">Back</a>
+        }
+        else
+        {
+            <form asp-action="Delete" method="post">
+                <input type="hidden" asp-for="PositionId" />
+                <button type="submit" class="btn btn-danger">Delete</button>
+                <a asp-action="Index" class="btn btn-secondary">Back</a>
+            </form>
+        }
+    </div>
+</div>

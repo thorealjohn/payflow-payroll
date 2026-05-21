@@ -28,7 +28,7 @@ namespace itpayroll.Controllers
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
-        public async Task<IActionResult> Index(string searchString, string status, string period = "ThisMonth", string customDateFrom = "", string customDateTo = "")
+        public async Task<IActionResult> Index(string searchString, string status, string period = "ThisMonth", string customDateFrom = "", string customDateTo = "", int page = 1)
         {
             (DateTime? from, DateTime? to) = PeriodHelper.GetDateRange(period, customDateFrom, customDateTo);
 
@@ -63,6 +63,9 @@ namespace itpayroll.Controllers
             }
 
 
+            int pageSize = 10;
+            int totalPayrolls = await payrolls.CountAsync();
+
             ViewBag.CurrentFilter = searchString;
             ViewBag.Period = period;
             ViewBag.Status = status; 
@@ -71,9 +74,13 @@ namespace itpayroll.Controllers
             ViewBag.TotalNet = await payrolls.SumAsync(p => p.NetPay);
             ViewBag.ProcessedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Processed);
             ViewBag.ReleasedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Released);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalPayrolls / pageSize);
 
             var result = await payrolls
                 .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
             return View(result);
         }
@@ -177,7 +184,7 @@ namespace itpayroll.Controllers
             return View(viewModel);
         }
 
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> Release(int id)
         {
             var payroll = await _context.Payrolls.FindAsync(id);

@@ -5,6 +5,10 @@
     ViewData["Title"] = "Payroll Report";
     var earningsByPayroll = ViewBag.EarningsByPayroll as Dictionary<int, List<Earning>> ?? new Dictionary<int, List<Earning>>();
     var deductionsByPayroll = ViewBag.DeductionsByPayroll as Dictionary<int, List<Deduction>> ?? new Dictionary<int, List<Deduction>>();
+    int current = ViewBag.CurrentPage ?? 1;
+    int total = ViewBag.TotalPages ?? 1;
+    int start = Math.Max(1, current - 2);
+    int end = Math.Min(total, current + 2);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -21,7 +25,17 @@
            asp-route-department="@ViewBag.SelectedDepartment"
            asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
            class="btn btn-success">
-            <i class="fas fa-file-excel me-1"></i> Export Excel
+            <i class="fas fa-file-excel me-1"></i> Excel
+        </a>
+        <a asp-action="ExportPayrollPdf"
+           asp-route-period="@ViewBag.Period"
+           asp-route-customDateFrom="@ViewBag.CustomDateFrom"
+           asp-route-customDateTo="@ViewBag.CustomDateTo"
+           asp-route-employeeId="@ViewBag.SelectedEmployee"
+           asp-route-department="@ViewBag.SelectedDepartment"
+           asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
+           class="btn btn-danger">
+            <i class="fas fa-file-pdf me-1"></i> PDF
         </a>
     </div>
 </div>
@@ -84,7 +98,7 @@
         <input type="date" name="customDateTo" class="form-control" value="@ViewBag.CustomDateTo" />
     </div>
     <div class="col-md-2">
-        <select name="employeeId" class="form-select">
+        <select name="employeeId" class="form-select tom-select">
             <option value="">All Employees</option>
             @foreach (var emp in ViewBag.Employees as List<SelectListItem> ?? new List<SelectListItem>())
             {
@@ -95,9 +109,9 @@
     <div class="col-md-2">
         <select name="department" class="form-select">
             <option value="">All Departments</option>
-            @foreach (var dept in ViewBag.Departments as List<string> ?? new List<string>())
+            @foreach (var dept in ViewBag.Departments as List<SelectListItem> ?? new List<SelectListItem>())
             {
-                <option value="@dept" selected="@(ViewBag.SelectedDepartment == dept)">@dept</option>
+                <option value="@dept.Value" selected="@(ViewBag.SelectedDepartment == dept.Value)">@dept.Text</option>
             }
         </select>
     </div>
@@ -211,29 +225,51 @@
     </div>
 </div>
 
-<nav class="mt-3">
-    <ul class="pagination">
-        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+<div class="d-flex justify-content-between align-items-center px-4 py-3">
+    <small class="text-muted">Page @current of @total</small>
+    <div class="d-flex gap-1 flex-wrap">
+        <a asp-action="PayrollReport" asp-route-page="@(current - 1)"
+           asp-route-period="@ViewBag.Period" asp-route-customDateFrom="@ViewBag.CustomDateFrom" asp-route-customDateTo="@ViewBag.CustomDateTo"
+           asp-route-employeeId="@ViewBag.SelectedEmployee" asp-route-department="@ViewBag.SelectedDepartment" asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
+           class="btn btn-sm btn-outline-primary @(current == 1 ? "disabled" : "")">Previous</a>
+
+        @if (start > 1)
         {
-            <li class="page-item @(i == (int)ViewBag.CurrentPage ? "active" : "")">
-                <a class="page-link"
-                   asp-action="PayrollReport"
-                   asp-route-period="@ViewBag.Period"
-                   asp-route-customDateFrom="@ViewBag.CustomDateFrom"
-                   asp-route-customDateTo="@ViewBag.CustomDateTo"
-                   asp-route-employeeId="@ViewBag.SelectedEmployee"
-                   asp-route-department="@ViewBag.SelectedDepartment"
-                   asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
-                   asp-route-page="@i">@i</a>
-            </li>
+            <a asp-action="PayrollReport" asp-route-page="1"
+               asp-route-period="@ViewBag.Period" asp-route-customDateFrom="@ViewBag.CustomDateFrom" asp-route-customDateTo="@ViewBag.CustomDateTo"
+               asp-route-employeeId="@ViewBag.SelectedEmployee" asp-route-department="@ViewBag.SelectedDepartment" asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
+               class="btn btn-sm btn-outline-primary">1</a>
+            @if (start > 2) { <span class="px-2">...</span> }
         }
-    </ul>
-</nav>
+
+        @for (int i = start; i <= end; i++)
+        {
+            <a asp-action="PayrollReport" asp-route-page="@i"
+               asp-route-period="@ViewBag.Period" asp-route-customDateFrom="@ViewBag.CustomDateFrom" asp-route-customDateTo="@ViewBag.CustomDateTo"
+               asp-route-employeeId="@ViewBag.SelectedEmployee" asp-route-department="@ViewBag.SelectedDepartment" asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
+               class="btn btn-sm @(i == current ? "btn-primary" : "btn-outline-primary")">@i</a>
+        }
+
+        @if (end < total)
+        {
+            @if (end < total - 1) { <span class="px-2">...</span> }
+            <a asp-action="PayrollReport" asp-route-page="@total"
+               asp-route-period="@ViewBag.Period" asp-route-customDateFrom="@ViewBag.CustomDateFrom" asp-route-customDateTo="@ViewBag.CustomDateTo"
+               asp-route-employeeId="@ViewBag.SelectedEmployee" asp-route-department="@ViewBag.SelectedDepartment" asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
+               class="btn btn-sm btn-outline-primary">@total</a>
+        }
+
+        <a asp-action="PayrollReport" asp-route-page="@(current + 1)"
+           asp-route-period="@ViewBag.Period" asp-route-customDateFrom="@ViewBag.CustomDateFrom" asp-route-customDateTo="@ViewBag.CustomDateTo"
+           asp-route-employeeId="@ViewBag.SelectedEmployee" asp-route-department="@ViewBag.SelectedDepartment" asp-route-payrollStatus="@ViewBag.SelectedPayrollStatus"
+           class="btn btn-sm btn-outline-primary @(current == total ? "disabled" : "")">Next</a>
+    </div>
+</div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const trend = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MonthlyTrend));
+        const trend = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MonthlyTrend));
         const ctx = document.getElementById('payrollTrendChart')?.getContext('2d');
         if (ctx) {
             new Chart(ctx, {

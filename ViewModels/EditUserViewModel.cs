@@ -12,9 +12,13 @@ namespace itpayroll.ViewModels
         public string Email { get; set; } = string.Empty;
 
         [Required]
+        [RegularExpression(@"^[a-zA-Z\s\-']+$", ErrorMessage = "Only letters, spaces, hyphens, and apostrophes allowed")]
+        [MaxLength(50)]
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
+        [RegularExpression(@"^[a-zA-Z\s\-']+$", ErrorMessage = "Only letters, spaces, hyphens, and apostrophes allowed")]
+        [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
 
         [Required]

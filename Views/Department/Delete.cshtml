@@ -1,0 +1,37 @@
+@model itpayroll.Models.Department
+@{
+    ViewData["Title"] = "Delete Department";
+    var positionCount = ViewBag.PositionCount ?? 0;
+    var employeeCount = ViewBag.EmployeeCount ?? 0;
+}
+
+<h4 class="mb-4 fw-bold">Delete Department</h4>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">@(Model.Description ?? "-")</dd>
+            <dt class="col-sm-3">Positions</dt>
+            <dd class="col-sm-9">@positionCount</dd>
+            <dt class="col-sm-3">Employees</dt>
+            <dd class="col-sm-9">@employeeCount</dd>
+        </dl>
+
+        @if (positionCount > 0 || employeeCount > 0)
+        {
+            <div class="alert alert-warning">This department is in use and cannot be deleted.</div>
+            <a asp-action="Index" class="btn btn-secondary">Back</a>
+        }
+        else
+        {
+            <form asp-action="Delete" method="post">
+                <input type="hidden" asp-for="DepartmentId" />
+                <button type="submit" class="btn btn-danger">Delete</button>
+                <a asp-action="Index" class="btn btn-secondary">Back</a>
+            </form>
+        }
+    </div>
+</div>

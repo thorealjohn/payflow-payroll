@@ -1,11 +1,11 @@
 @model itpayroll.ViewModels.EmployeeViewModel
 @{
-    ViewData["Title"] = "Edit Personnel";
+    ViewData["Title"] = "Edit Employee";
 }
 
 <div class="mb-4">
-    <h4 class="fw-bold mb-0">Edit Personnel</h4>
-    <small class="text-muted">Update employee information</small>
+    <h4 class="fw-bold mb-0">Edit Employee</h4>
+    <small class="text-muted">Update employee information and system access role</small>
 </div>
 
 <div class="card">
@@ -25,6 +25,104 @@
                     <label asp-for="LastName" class="form-label"></label>
                     <input asp-for="LastName" class="form-control" />
                     <span asp-validation-for="LastName" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="MiddleName" class="form-label"></label>
+                    <input asp-for="MiddleName" class="form-control" />
+                    <span asp-validation-for="MiddleName" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Suffix" class="form-label"></label>
+                    <input asp-for="Suffix" class="form-control" />
+                    <span asp-validation-for="Suffix" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="DateOfBirth" class="form-label"></label>
+                    <input asp-for="DateOfBirth" class="form-control" type="date" />
+                    <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Gender" class="form-label"></label>
+                    <select asp-for="Gender" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Areas.Identity.Data.Gender>()">
+                        <option value="">-- Select Gender --</option>
+                    </select>
+                    <span asp-validation-for="Gender" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="CivilStatus" class="form-label"></label>
+                    <select asp-for="CivilStatus" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Areas.Identity.Data.CivilStatus>()">
+                        <option value="">-- Select Civil Status --</option>
+                    </select>
+                    <span asp-validation-for="CivilStatus" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Nationality" class="form-label"></label>
+                    <input asp-for="Nationality" class="form-control" />
+                    <span asp-validation-for="Nationality" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control" />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+            </div>
+
+            <h6 class="mb-3">Contact Information</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="AddressStreet" class="form-label"></label>
+                    <input asp-for="AddressStreet" class="form-control" />
+                    <span asp-validation-for="AddressStreet" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="AddressBarangay" class="form-label"></label>
+                    <input asp-for="AddressBarangay" class="form-control" />
+                    <span asp-validation-for="AddressBarangay" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AddressCity" class="form-label"></label>
+                    <input asp-for="AddressCity" class="form-control" />
+                    <span asp-validation-for="AddressCity" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AddressProvince" class="form-label"></label>
+                    <input asp-for="AddressProvince" class="form-control" />
+                    <span asp-validation-for="AddressProvince" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AddressZipCode" class="form-label"></label>
+                    <input asp-for="AddressZipCode" class="form-control" />
+                    <span asp-validation-for="AddressZipCode" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EmergencyContactName" class="form-label"></label>
+                    <input asp-for="EmergencyContactName" class="form-control" />
+                    <span asp-validation-for="EmergencyContactName" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EmergencyContactRelationship" class="form-label"></label>
+                    <input asp-for="EmergencyContactRelationship" class="form-control" />
+                    <span asp-validation-for="EmergencyContactRelationship" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EmergencyContactPhone" class="form-label"></label>
+                    <input asp-for="EmergencyContactPhone" class="form-control" />
+                    <span asp-validation-for="EmergencyContactPhone" class="text-danger"></span>
                 </div>
             </div>
 
@@ -52,17 +150,23 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label asp-for="Department" class="form-label"></label>
-                    <input asp-for="Department" class="form-control" />
+                    <label asp-for="DepartmentId" class="form-label"></label>
+                    <select asp-for="DepartmentId" class="form-select" asp-items="ViewBag.Departments" id="departmentSelect" required>
+                        <option value="">-- Select Department --</option>
+                    </select>
+                    <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PositionId" class="form-label"></label>
+                    <select asp-for="PositionId" class="form-select" asp-items="ViewBag.Positions" id="positionSelect" required>
+                        <option value="">-- Select Position --</option>
+                    </select>
+                    <span asp-validation-for="PositionId" class="text-danger"></span>
                 </div>
             </div>
 
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label asp-for="Position" class="form-label"></label>
-                    <input asp-for="Position" class="form-control" />
-                </div>
-
                 <div class="col-md-6 mb-3">
                     <label asp-for="ShiftId" class="form-label"></label>
                     <select asp-for="ShiftId" class="form-select" asp-items="ViewBag.Shifts">
@@ -72,10 +176,10 @@
                 </div>
             </div>
 
-            <!-- Employee-only fields -->
+            <!-- Employee payroll fields -->
             <div id="employeeOnlyFields">
                 <hr />
-                <h6 class="mb-3">Compensation & Schedule</h6>
+                <h6 class="mb-3">Payroll Details</h6>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="BasicSalary" class="form-label"></label>
@@ -94,6 +198,14 @@
                     <label asp-for="TerminationDate" class="form-label"></label>
                     <input asp-for="TerminationDate" class="form-control" type="date" />
                     <span asp-validation-for="TerminationDate" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="EmploymentType" class="form-label"></label>
+                    <select asp-for="EmploymentType" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Models.EmploymentType>()" id="employmentTypeSelect">
+                        <option value="">-- Select Employment Type --</option>
+                    </select>
+                    <span asp-validation-for="EmploymentType" class="text-danger"></span>
                 </div>
 
                 <hr />
@@ -159,19 +271,71 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
+        var roleDefaults = @Html.Raw(ViewBag.RoleDefaults ?? "{}");
+
         document.addEventListener('DOMContentLoaded', function () {
             var roleSelect = document.getElementById('roleSelect');
+            var departmentSelect = document.getElementById('departmentSelect');
+            var positionSelect = document.getElementById('positionSelect');
             var employeeFields = document.getElementById('employeeOnlyFields');
+            var salaryInput = document.getElementById('BasicSalary');
+            var shiftSelect = document.getElementById('ShiftId');
+            var employmentTypeSelect = document.getElementById('employmentTypeSelect');
 
             function toggleEmployeeFields() {
-                if (roleSelect.value === 'Employee') {
-                    employeeFields.style.display = 'block';
-                } else {
-                    employeeFields.style.display = 'none';
+                employeeFields.style.display = 'block';
+                if (salaryInput) salaryInput.required = true;
+                if (shiftSelect) shiftSelect.required = true;
+                if (employmentTypeSelect) employmentTypeSelect.required = true;
+            }
+
+            function applyRoleDefaults() {
+                var defaults = roleDefaults[roleSelect.value];
+                if (defaults) {
+                    if (defaults.departmentId) {
+                        departmentSelect.value = defaults.departmentId;
+                        loadPositions(defaults.departmentId, defaults.positionId || null);
+                        return;
+                    }
+                    if (defaults.positionId) {
+                        positionSelect.value = defaults.positionId;
+                    }
                 }
             }
 
-            roleSelect.addEventListener('change', toggleEmployeeFields);
+            function loadPositions(departmentId, selectedPositionId) {
+                positionSelect.innerHTML = '<option value="">-- Select Position --</option>';
+                positionSelect.disabled = true;
+                if (!departmentId) {
+                    positionSelect.disabled = false;
+                    return;
+                }
+
+                fetch('@Url.Action("GetPositionsByDepartment", "Employee")?departmentId=' + departmentId)
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        data.forEach(function (p) {
+                            var opt = document.createElement('option');
+                            opt.value = p.positionId;
+                            opt.text = p.name;
+                            if (selectedPositionId && p.positionId == selectedPositionId) {
+                                opt.selected = true;
+                            }
+                            positionSelect.appendChild(opt);
+                        });
+                        positionSelect.disabled = false;
+                    });
+            }
+
+            departmentSelect.addEventListener('change', function () {
+                loadPositions(this.value, null);
+            });
+
+            roleSelect.addEventListener('change', function () {
+                toggleEmployeeFields();
+                applyRoleDefaults();
+            });
+
             toggleEmployeeFields();
         });
     </script>
