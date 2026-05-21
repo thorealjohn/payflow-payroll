@@ -19,5 +19,7 @@ namespace itpayroll.Models
 
         [ForeignKey(nameof(DepartmentId))]
         public Department Department { get; set; } = null!;
+
+        public bool IsActive { get; set; } = true;
     }
 }

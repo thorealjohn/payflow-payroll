@@ -107,20 +107,34 @@
     </div>
 </div>
 
-<div class="mt-3">
-    <span class="badge @(Model.Payroll.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : "bg-primary") fs-6">
+<div class="mt-3 d-flex align-items-center gap-3">
+    <span class="badge @(Model.Payroll.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : Model.Payroll.Status == itpayroll.Models.PayrollStatus.Approved ? "bg-info" : Model.Payroll.Status == itpayroll.Models.PayrollStatus.PendingApproval ? "bg-warning" : "bg-secondary") fs-6">
         Status: @Model.Payroll.Status
     </span>
-    <span class="text-muted ms-3">Processed on: @Model.Payroll.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+    <span class="text-muted">Processed on: @Model.Payroll.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+    @if (Model.Payroll.ApprovedAt.HasValue)
+    {
+        <span class="text-muted">Approved on: @Model.Payroll.ApprovedAt.Value.ToString("MMM dd, yyyy HH:mm")</span>
+    }
 </div>
 
 <div class="mt-3">
     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
     {
         <a asp-action="Index" class="btn btn-secondary">Back to Payroll Records</a>
-        @if (Model.Payroll.Status == itpayroll.Models.PayrollStatus.Processed && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")))
+        @if ((Model.Payroll.Status == itpayroll.Models.PayrollStatus.PendingApproval || Model.Payroll.Status == itpayroll.Models.PayrollStatus.Processed) && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR")))
         {
-            <a asp-action="Release" asp-route-id="@Model.Payroll.PayrollId" class="btn btn-success">Release Payroll</a>
+            <form asp-action="Approve" asp-route-id="@Model.Payroll.PayrollId" method="post" class="d-inline" onsubmit="return confirm('Approve this payroll?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning">Approve Payroll</button>
+            </form>
+        }
+        @if (Model.Payroll.Status == itpayroll.Models.PayrollStatus.Approved && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")))
+        {
+            <form asp-action="Release" asp-route-id="@Model.Payroll.PayrollId" method="post" class="d-inline" onsubmit="return confirm('Release this payroll?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success">Release Payroll</button>
+            </form>
         }
     }
     else

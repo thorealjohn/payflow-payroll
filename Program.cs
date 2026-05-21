@@ -6,6 +6,7 @@ using itpayroll.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<SensitiveActionPasswordFilter>();
     options.Filters.Add<AuditLoggingActionFilter>();
     options.Filters.Add<RequirePasswordChangeAttribute>();
+    options.Filters.Add<RequireTwoFactorAttribute>();
 });
 
 // Add authorization policies for role-based access
@@ -112,6 +114,10 @@ builder.Services.PostConfigure<BrandingOptions>(o =>
     if (string.IsNullOrWhiteSpace(o.LogoPath))
         o.LogoPath = "~/images/logo.jpg";
 });
+
+var cultureInfo = new CultureInfo("en-PH");
+CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
 var app = builder.Build();
 

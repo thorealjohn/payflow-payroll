@@ -28,6 +28,16 @@ namespace itpayroll.Services
             return (totalHours, overtime, nightShiftHours);
         }
 
+        public bool IsRestDay(DateTime date, Shift? shift)
+        {
+            if (shift?.RestDays == null)
+                return date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+
+            var restDays = shift.RestDays
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            return restDays.Contains(date.DayOfWeek.ToString());
+        }
+
         public (int lateMinutes, int undertimeMinutes) CalculateLateAndUndertime(
             TimeSpan timeIn, TimeSpan timeOut, Shift shift, DateTime date)
         {

@@ -18,6 +18,7 @@ namespace itpayroll.Data
             await SeedRoles.RunAsync(roleManager);
             await SeedUsers.RunAsync(userManager, roleManager, configuration);
             await SeedGovernmentData.RunAsync(context);
+            await SeedPayrollSettings.RunAsync(context);
             await SeedShifts.RunAsync(context);
             await SeedDepartments.RunAsync(context);
             await SeedAccessUsers.RunAsync(userManager, configuration, context);

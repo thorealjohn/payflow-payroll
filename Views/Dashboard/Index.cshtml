@@ -71,7 +71,9 @@
                             @foreach (var p in (List<itpayroll.Models.Payroll>)ViewBag.RecentPayrolls)
                             {
                                 var badgeClass = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" :
-                                    p.Status == itpayroll.Models.PayrollStatus.Processed ? "text-dark bg-warning" : "bg-secondary";
+                                    p.Status == itpayroll.Models.PayrollStatus.Processed ? "text-dark bg-warning" :
+                                    p.Status == itpayroll.Models.PayrollStatus.PendingApproval ? "bg-warning" :
+                                    p.Status == itpayroll.Models.PayrollStatus.Approved ? "bg-info" : "bg-secondary";
                                 <tr>
                                     <td>@p.Employee.User?.FirstName @p.Employee.User?.LastName</td>
                                     <td>@p.PeriodStart.ToString("MMM d") - @p.PeriodEnd.ToString("MMM d")</td>
@@ -373,7 +375,9 @@ else
                                 @foreach (var p in (List<itpayroll.Models.Payroll>)ViewBag.MyPayrolls)
                                 {
                                     var badgeClass = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" :
-                                        p.Status == itpayroll.Models.PayrollStatus.Processed ? "text-dark bg-warning" : "bg-secondary";
+                                        p.Status == itpayroll.Models.PayrollStatus.Processed ? "text-dark bg-warning" :
+                                        p.Status == itpayroll.Models.PayrollStatus.PendingApproval ? "bg-warning" :
+                                        p.Status == itpayroll.Models.PayrollStatus.Approved ? "bg-info" : "bg-secondary";
                                     <tr>
                                         <td>@p.PeriodStart.ToString("MMM dd") - @p.PeriodEnd.ToString("MMM dd")</td>
                                         <td>₱@p.NetPay.ToString("N2")</td>

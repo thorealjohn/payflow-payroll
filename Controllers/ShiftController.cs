@@ -6,7 +6,6 @@ using itpayroll.Data;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin,HR")]
     public class ShiftController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -16,6 +15,7 @@ namespace itpayroll.Controllers
             _context = context;
         }
 
+        [Authorize(Roles = "SuperAdmin,Admin,HR")]
         public async Task<IActionResult> Index()
         {
             var shifts = await _context.Shifts.ToListAsync();
@@ -23,6 +23,7 @@ namespace itpayroll.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public IActionResult Create()
         {
             return View();
@@ -30,6 +31,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create(Shift shift)
         {
             if (ModelState.IsValid)
@@ -44,6 +46,7 @@ namespace itpayroll.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             var shift = await _context.Shifts.FindAsync(id);
@@ -53,6 +56,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Edit(int id, Shift shift)
         {
             if (id != shift.ShiftId) return NotFound();
@@ -69,6 +73,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var shift = await _context.Shifts.FindAsync(id);

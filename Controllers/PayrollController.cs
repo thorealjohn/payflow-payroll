@@ -72,7 +72,8 @@ namespace itpayroll.Controllers
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
             ViewBag.TotalNet = await payrolls.SumAsync(p => p.NetPay);
-            ViewBag.ProcessedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Processed);
+            ViewBag.PendingCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.PendingApproval);
+            ViewBag.ApprovedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Approved);
             ViewBag.ReleasedCount = await payrolls.CountAsync(p => p.Status == PayrollStatus.Released);
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = (int)Math.Ceiling((double)totalPayrolls / pageSize);
@@ -122,14 +123,33 @@ namespace itpayroll.Controllers
                 return View(model);
             }
 
+            // Prevent self-processing (unless SuperAdmin)
+            if (!User.IsInRole(Roles.SuperAdmin))
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser != null)
+                {
+                    var currentEmployee = await _context.Employees
+                        .FirstOrDefaultAsync(e => e.UserId == currentUser.Id);
+                    if (currentEmployee != null && currentEmployee.EmployeeId == model.EmployeeId)
+                    {
+                        ModelState.AddModelError("", "You cannot process your own payroll.");
+                        await PopulateEmployeeDropdown();
+                        return View(model);
+                    }
+                }
+            }
+
             try
             {
+                var currentUser = await _userManager.GetUserAsync(User);
                 var payroll = await _payrollService.ProcessPayrollAsync(
                     model.EmployeeId,
                     model.PeriodStart,
-                    model.PeriodEnd);
+                    model.PeriodEnd,
+                    currentUser?.Id ?? "");
 
-                TempData["Success"] = $"Payroll processed successfully. Net Pay: {payroll.NetPay:C}";
+                TempData["Success"] = $"Payroll processed successfully. Net Pay: ₱{payroll.NetPay:N2}";
                 return RedirectToAction(nameof(Details), new { id = payroll.PayrollId });
             }
             catch (Exception ex)
@@ -184,6 +204,8 @@ namespace itpayroll.Controllers
             return View(viewModel);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public async Task<IActionResult> Release(int id)
         {
@@ -191,9 +213,9 @@ namespace itpayroll.Controllers
             if (payroll == null)
                 return NotFound();
 
-            if (payroll.Status != PayrollStatus.Processed)
+            if (payroll.Status != PayrollStatus.Approved)
             {
-                TempData["Error"] = "Only processed payrolls can be released.";
+                TempData["Error"] = "Only approved payrolls can be released.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -207,8 +229,8 @@ namespace itpayroll.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyPayslips(string period = "ThisMonth", string customDateFrom = "", string customDateTo = "")
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
+        public async Task<IActionResult> MyPayslips(string period = "ThisMonth", string customDateFrom = "", string customDateTo = "", int page = 1)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -239,13 +261,20 @@ namespace itpayroll.Controllers
                 query = query.Where(p => p.PeriodEnd <= to.Value);
             }
 
+            int pageSize = 10;
+            int total = await query.CountAsync();
+
             var payrolls = await query
                 .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             ViewBag.Period = period;
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
             var viewModel = new List<PayrollDetailViewModel>();
 
@@ -271,7 +300,7 @@ namespace itpayroll.Controllers
             return View(viewModel);
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> MyPayslip(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -308,6 +337,68 @@ namespace itpayroll.Controllers
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var payroll = await _context.Payrolls
+                .Include(p => p.ProcessedBy)
+                .FirstOrDefaultAsync(p => p.PayrollId == id);
+
+            if (payroll == null)
+                return NotFound();
+
+            if (payroll.Status != PayrollStatus.PendingApproval && payroll.Status != PayrollStatus.Processed)
+            {
+                TempData["Error"] = "Only payrolls pending approval can be approved.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return Challenge();
+
+            // SuperAdmin is exempt from restrictions
+            if (!User.IsInRole(Roles.SuperAdmin))
+            {
+                // Cannot approve your own processing
+                if (payroll.ProcessedById == currentUser.Id)
+                {
+                    TempData["Error"] = "You cannot approve a payroll you processed.";
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+
+                // Role hierarchy check: approver must have higher role than processor
+                var processorUser = await _userManager.FindByIdAsync(payroll.ProcessedById ?? "");
+                if (processorUser != null)
+                {
+                    var processorRoles = await _userManager.GetRolesAsync(processorUser);
+                    var processorRole = processorRoles.FirstOrDefault() ?? "";
+
+                    var currentRoles = await _userManager.GetRolesAsync(currentUser);
+                    var currentRole = currentRoles.FirstOrDefault() ?? "";
+
+                    if (!RoleHierarchy.CanApprove(currentRole, processorRole))
+                    {
+                        TempData["Error"] = "You do not have sufficient authority to approve this payroll. Only someone with a higher role than the processor can approve.";
+                        return RedirectToAction(nameof(Details), new { id });
+                    }
+                }
+            }
+
+            payroll.Status = PayrollStatus.Approved;
+            payroll.ApprovedById = currentUser.Id;
+            payroll.ApprovedAt = DateTime.UtcNow;
+            payroll.ModifiedAt = DateTime.UtcNow;
+            payroll.ModifiedBy = currentUser.UserName ?? "System";
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Payroll approved successfully.";
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         [HttpPost]

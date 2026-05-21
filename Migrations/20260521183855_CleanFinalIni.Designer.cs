@@ -12,8 +12,8 @@ using itpayroll.Data;
 namespace itpayroll.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260520041856_AddDepartmentPositionEntities")]
-    partial class AddDepartmentPositionEntities
+    [Migration("20260521183855_CleanFinalIni")]
+    partial class CleanFinalIni
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -355,6 +355,9 @@ namespace itpayroll.Migrations
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<int>("LateMinutes")
                         .HasColumnType("int");
 
@@ -502,6 +505,9 @@ namespace itpayroll.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -598,9 +604,6 @@ namespace itpayroll.Migrations
                     b.Property<string>("PagIBIGNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("PayFrequency")
-                        .HasColumnType("int");
 
                     b.Property<string>("PhilHealthNumber")
                         .HasMaxLength(50)
@@ -819,6 +822,42 @@ namespace itpayroll.Migrations
                     b.ToTable("Overtimes");
                 });
 
+            modelBuilder.Entity("itpayroll.Models.PagIBIGRate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("EmployeeRate")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("EmployerRate")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("MaxContribution")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal?>("MaxSalary")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal>("MinSalary")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PagIBIGRates");
+                });
+
             modelBuilder.Entity("itpayroll.Models.Payroll", b =>
                 {
                     b.Property<int>("PayrollId")
@@ -826,6 +865,13 @@ namespace itpayroll.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PayrollId"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -860,13 +906,19 @@ namespace itpayroll.Migrations
                     b.Property<DateTime>("PeriodStart")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ProcessedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("TotalDeductions")
                         .HasPrecision(12, 2)
@@ -874,10 +926,81 @@ namespace itpayroll.Migrations
 
                     b.HasKey("PayrollId");
 
+                    b.HasIndex("ApprovedById");
+
+                    b.HasIndex("ProcessedById");
+
                     b.HasIndex("EmployeeId", "PeriodStart", "PeriodEnd")
                         .IsUnique();
 
                     b.ToTable("Payrolls");
+                });
+
+            modelBuilder.Entity("itpayroll.Models.PayrollSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cutoff1EndDay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Cutoff1StartDay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Cutoff2EndDay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Cutoff2StartDay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Frequency")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PayrollSettings");
+                });
+
+            modelBuilder.Entity("itpayroll.Models.PhilHealthRate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("EmployeeSharePercentage")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal?>("MaxSalary")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal>("MinSalary")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PhilHealthRates");
                 });
 
             modelBuilder.Entity("itpayroll.Models.Position", b =>
@@ -894,6 +1017,9 @@ namespace itpayroll.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -918,6 +1044,10 @@ namespace itpayroll.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("ECC")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<decimal>("EmployeeShare")
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
@@ -926,11 +1056,19 @@ namespace itpayroll.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
+                    b.Property<decimal>("MSC")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<decimal>("MaxSalary")
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
                     b.Property<decimal>("MinSalary")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal>("TotalContribution")
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
@@ -972,6 +1110,11 @@ namespace itpayroll.Migrations
                     b.Property<bool>("IsOvernight")
                         .HasColumnType("bit");
 
+                    b.Property<string>("RestDays")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("ShiftName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -986,6 +1129,44 @@ namespace itpayroll.Migrations
                         .IsUnique();
 
                     b.ToTable("Shifts");
+                });
+
+            modelBuilder.Entity("itpayroll.Models.TaxBracket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BaseTax")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<decimal?>("MaxAmount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<decimal>("MinAmount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SortOrder", "Year")
+                        .IsUnique();
+
+                    b.ToTable("TaxBrackets");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1169,13 +1350,27 @@ namespace itpayroll.Migrations
 
             modelBuilder.Entity("itpayroll.Models.Payroll", b =>
                 {
+                    b.HasOne("itpayroll.Areas.Identity.Data.ApplicationUser", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("itpayroll.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("itpayroll.Areas.Identity.Data.ApplicationUser", "ProcessedBy")
+                        .WithMany()
+                        .HasForeignKey("ProcessedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedBy");
+
                     b.Navigation("Employee");
+
+                    b.Navigation("ProcessedBy");
                 });
 
             modelBuilder.Entity("itpayroll.Models.Position", b =>

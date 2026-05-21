@@ -169,7 +169,7 @@
                         <td class="px-4">₱@p.TotalDeductions.ToString("N2")</td>
                         <td class="px-4">₱@p.NetPay.ToString("N2")</td>
                         <td class="px-4">
-                            <span class="badge @(p.Status == PayrollStatus.Released ? "bg-success" : p.Status == PayrollStatus.Processed ? "bg-warning text-dark" : "bg-secondary")">
+                            <span class="badge @(p.Status == PayrollStatus.Released ? "bg-success" : p.Status == PayrollStatus.Approved ? "bg-info" : p.Status == PayrollStatus.PendingApproval ? "bg-warning" : p.Status == PayrollStatus.Processed ? "bg-warning text-dark" : "bg-secondary")">
                                 @p.Status
                             </span>
                         </td>

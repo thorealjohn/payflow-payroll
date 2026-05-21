@@ -124,6 +124,14 @@ namespace itpayroll.Controllers
                 return View(model);
             }
 
+            // Prevent self-editing (unless SuperAdmin)
+            if (!User.IsInRole(Roles.SuperAdmin) && await IsOwnAttendance(model.EmployeeId))
+            {
+                ModelState.AddModelError("", "You cannot create or edit your own attendance record.");
+                await PopulateEmployeeDropdown();
+                return View(model);
+            }
+
             var totalHours = (model.TimeOut - model.TimeIn).TotalHours;
 
             // Get employee's shift to calculate late/undertime
@@ -212,6 +220,13 @@ namespace itpayroll.Controllers
             if (attendance == null)
                 return NotFound();
 
+            // Prevent self-editing (unless SuperAdmin)
+            if (!User.IsInRole(Roles.SuperAdmin) && await IsOwnAttendance(attendance.EmployeeId))
+            {
+                TempData["Error"] = "You cannot create or edit your own attendance record.";
+                return RedirectToAction(nameof(Index));
+            }
+
             attendance.TimeIn = model.TimeIn;
             attendance.TimeOut = model.TimeOut;
             attendance.TotalHours = (model.TimeOut - model.TimeIn).TotalHours;
@@ -275,15 +290,23 @@ namespace itpayroll.Controllers
             if (attendance == null)
                 return NotFound();
 
-            _context.Attendances.Remove(attendance);
+            // Prevent self-editing (unless SuperAdmin)
+            if (!User.IsInRole(Roles.SuperAdmin) && await IsOwnAttendance(attendance.EmployeeId))
+            {
+                TempData["Error"] = "You cannot delete your own attendance record.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            attendance.IsActive = !attendance.IsActive;
+            _context.Attendances.Update(attendance);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Attendance record deleted successfully.";
+            TempData["Success"] = attendance.IsActive ? "Attendance record restored successfully." : "Attendance record deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyAttendance(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
+        public async Task<IActionResult> MyAttendance(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null, int page = 1)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -313,13 +336,20 @@ namespace itpayroll.Controllers
                 query = query.Where(a => a.Date <= to.Value);
             }
 
+            int pageSize = 10;
+            int total = await query.CountAsync();
+
             var attendances = await query
                 .OrderByDescending(a => a.Date)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             ViewBag.Period = period;
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
             return View(attendances);
         }
@@ -340,7 +370,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> TimeIn()
         {
             var employee = await GetCurrentEmployee();
@@ -368,6 +398,7 @@ namespace itpayroll.Controllers
                  Date = today,
                  TimeIn = new TimeSpan(now.Hour, now.Minute, now.Second),
                  ShiftId = shift?.ShiftId,
+                 DayType = _attendanceService.IsRestDay(today, shift) ? DayType.RestDay : DayType.Regular,
                  CreatedDate = DateTime.UtcNow
              };
 
@@ -380,7 +411,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> TimeOut()
         {
             var employee = await GetCurrentEmployee();
@@ -410,23 +441,37 @@ namespace itpayroll.Controllers
             attendance.TimeOut = new TimeSpan(now.Hour, now.Minute, now.Second);
             attendance.TotalHours = (attendance.TimeOut - attendance.TimeIn).TotalHours;
 
-             // Calculate late/undertime if shift exists
-             var shift = await GetCurrentShiftForEmployee(employee.EmployeeId);
-             if (shift != null)
-             {
-                 var (lateMinutes, undertimeMinutes) = _attendanceService.CalculateLateAndUndertime(
-                     attendance.TimeIn, attendance.TimeOut, shift, today);
-                 attendance.LateMinutes = lateMinutes;
-                 attendance.UndertimeMinutes = undertimeMinutes;
-             }
+              // Calculate late/undertime if shift exists
+              var shift = await GetCurrentShiftForEmployee(employee.EmployeeId);
+              if (shift != null)
+              {
+                  var (lateMinutes, undertimeMinutes) = _attendanceService.CalculateLateAndUndertime(
+                      attendance.TimeIn, attendance.TimeOut, shift, today);
+                  attendance.LateMinutes = lateMinutes;
+                  attendance.UndertimeMinutes = undertimeMinutes;
+              }
 
-             attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
-                 attendance.TimeIn, attendance.TimeOut, shift, today);
+              attendance.DayType = _attendanceService.IsRestDay(today, shift) ? DayType.RestDay : DayType.Regular;
+
+              attendance.NightShiftHours = _attendanceService.CalculateNightShiftHours(
+                  attendance.TimeIn, attendance.TimeOut, shift, today);
 
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Time Out recorded successfully.";
             return RedirectToAction(nameof(MyAttendance));
+        }
+
+        private async Task<bool> IsOwnAttendance(int employeeId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return false;
+
+            var employee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.UserId == user.Id);
+
+            return employee != null && employee.EmployeeId == employeeId;
         }
 
         private async Task PopulateEmployeeDropdown()

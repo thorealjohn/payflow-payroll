@@ -23,18 +23,25 @@
     <div class="col-md-3">
         <div class="card p-3">
             <small>Total Net Pay</small>
-            <h5 class="fw-bold text-success">₱@ViewBag.TotalNet</h5>
+            <h5 class="fw-bold text-success">₱@(((decimal)ViewBag.TotalNet).ToString("N2"))</h5>
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card p-3">
-            <small>Processed</small>
-            <h5 class="fw-bold text-primary">@ViewBag.ProcessedCount</h5>
+            <small>Pending Approval</small>
+            <h5 class="fw-bold text-warning">@ViewBag.PendingCount</h5>
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-2">
+        <div class="card p-3">
+            <small>Approved</small>
+            <h5 class="fw-bold text-info">@ViewBag.ApprovedCount</h5>
+        </div>
+    </div>
+
+    <div class="col-md-2">
         <div class="card p-3">
             <small>Released</small>
             <h5 class="fw-bold text-success">@ViewBag.ReleasedCount</h5>
@@ -46,7 +53,9 @@
     <div class="btn-group">
         <a asp-action="Index" class="btn btn-sm @(ViewBag.Status == null ? "btn-primary" : "btn-outline-primary")">All</a>
         <a asp-action="Index" asp-route-status="Draft" class="btn btn-sm btn-outline-secondary">Draft</a>
-        <a asp-action="Index" asp-route-status="Processed" class="btn btn-sm btn-outline-primary">Processed</a>
+        <a asp-action="Index" asp-route-status="Processed" class="btn btn-sm btn-outline-secondary">Processed</a>
+        <a asp-action="Index" asp-route-status="PendingApproval" class="btn btn-sm btn-outline-warning">Pending</a>
+        <a asp-action="Index" asp-route-status="Approved" class="btn btn-sm btn-outline-info">Approved</a>
         <a asp-action="Index" asp-route-status="Released" class="btn btn-sm btn-outline-success">Released</a>
     </div>
 </div>
@@ -83,7 +92,7 @@
             <tbody>
                 @foreach (var p in Model)
                 {
-                    var statusBadge = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : p.Status == itpayroll.Models.PayrollStatus.Processed ? "bg-primary" : "bg-secondary";
+                    var statusBadge = p.Status == itpayroll.Models.PayrollStatus.Released ? "bg-success" : p.Status == itpayroll.Models.PayrollStatus.Approved ? "bg-info" : p.Status == itpayroll.Models.PayrollStatus.PendingApproval ? "bg-warning" : p.Status == itpayroll.Models.PayrollStatus.Processed ? "bg-primary" : "bg-secondary";
                     <tr>
                         <td class="px-4">@p.Employee.User?.FirstName @p.Employee.User?.LastName</td>
                         <td class="px-4">@p.PeriodStart.ToString("MMM dd") - @p.PeriodEnd.ToString("MMM dd, yyyy")</td>
@@ -93,9 +102,19 @@
                         <td class="px-4"><span class="badge @statusBadge">@p.Status</span></td>
                         <td class="text-end px-4">
                             <a asp-action="Details" asp-route-id="@p.PayrollId" class="btn btn-sm btn-outline-info">View</a>
-                            @if (p.Status == itpayroll.Models.PayrollStatus.Processed && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")))
+                            @if ((p.Status == itpayroll.Models.PayrollStatus.PendingApproval || p.Status == itpayroll.Models.PayrollStatus.Processed) && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR")))
                             {
-                                <a asp-action="Release" asp-route-id="@p.PayrollId" class="btn btn-sm btn-outline-success">Release</a>
+                                <form asp-action="Approve" asp-route-id="@p.PayrollId" method="post" class="d-inline" onsubmit="return confirm('Approve this payroll?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Approve</button>
+                                </form>
+                            }
+                            @if (p.Status == itpayroll.Models.PayrollStatus.Approved && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")))
+                            {
+                                <form asp-action="Release" asp-route-id="@p.PayrollId" method="post" class="d-inline" onsubmit="return confirm('Release this payroll?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Release</button>
+                                </form>
                             }
                         </td>
                     </tr>

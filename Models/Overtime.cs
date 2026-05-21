@@ -39,6 +39,7 @@ namespace itpayroll.Models
     {
         Pending,
         Approved,
-        Rejected
+        Rejected,
+        Cancelled
     }
 }

@@ -94,9 +94,6 @@ namespace itpayroll.ViewModels
         [Display(Name = "Salary Type")]
         public SalaryType SalaryType { get; set; }
 
-        [Display(Name = "Pay Frequency")]
-        public PayFrequency PayFrequency { get; set; }
-
         [Display(Name = "Bank Name")]
         public string? BankName { get; set; }
 

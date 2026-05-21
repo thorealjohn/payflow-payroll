@@ -8,7 +8,10 @@
         <h4 class="fw-bold mb-0">Shifts</h4>
         <small class="text-muted">Manage work shift schedules</small>
     </div>
-    <a asp-action="Create" class="btn btn-success">Add Shift</a>
+    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" class="btn btn-success">Add Shift</a>
+    }
 </div>
 
 <div class="card">
@@ -20,6 +23,7 @@
                     <th class="px-4">Start Time</th>
                     <th class="px-4">End Time</th>
                     <th class="px-4">Grace (min)</th>
+                    <th class="px-4">Rest Days</th>
                     <th class="px-4">Night</th>
                     <th class="px-4">Overnight</th>
                     <th class="px-4">Status</th>
@@ -34,6 +38,7 @@
                         <td class="px-4">@shift.StartTime.ToString(@"hh\:mm")</td>
                         <td class="px-4">@shift.EndTime.ToString(@"hh\:mm")</td>
                         <td class="px-4">@shift.GracePeriodMinutes</td>
+                        <td class="px-4">@shift.RestDays</td>
                         <td class="px-4">@(shift.IsNightShift ? "Yes" : "No")</td>
                         <td class="px-4">@(shift.IsOvernight ? "Yes" : "No")</td>
                         <td class="px-4">
@@ -42,12 +47,15 @@
                             </span>
                         </td>
                         <td class="text-end px-4">
-                            <a asp-action="Edit" asp-route-id="@shift.ShiftId" class="btn btn-sm btn-outline-warning">Edit</a>
-                            @if (shift.IsActive)
+                            @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                             {
-                                <form asp-action="Delete" asp-route-id="@shift.ShiftId" method="post" class="d-inline" onsubmit="return confirm('Deactivate this shift?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
-                                </form>
+                                <a asp-action="Edit" asp-route-id="@shift.ShiftId" class="btn btn-sm btn-outline-warning">Edit</a>
+                                if (shift.IsActive)
+                                {
+                                    <form asp-action="Delete" asp-route-id="@shift.ShiftId" method="post" class="d-inline" onsubmit="return confirm('Deactivate this shift?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                    </form>
+                                }
                             }
                         </td>
                     </tr>
@@ -55,7 +63,7 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No shifts found.</td>
+                        <td colspan="9" class="text-center text-muted py-4">No shifts found.</td>
                     </tr>
                 }
             </tbody>

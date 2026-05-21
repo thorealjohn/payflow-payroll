@@ -66,16 +66,27 @@
                                         {
                                             <li><a class="dropdown-item" asp-controller="Payroll" asp-action="Process">Process Payroll</a></li>
                                         }
+                                        @if (User.IsInRole("SuperAdmin"))
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" asp-controller="PayrollSettings" asp-action="Index">Payroll Settings</a></li>
+                                        }
                                     </ul>
                                 </li>
                             }
-                            @if (User.IsInRole("Employee"))
+                            @if (User.IsInRole("Employee") || User.IsInRole("Admin") || User.IsInRole("HR"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Payroll" asp-action="MyPayslips">My Payslips</a>
+                                    <a class="nav-link" asp-controller="Attendance" asp-action="MyAttendance">My Attendance</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Attendance" asp-action="MyAttendance">My Attendance</a>
+                                    <a class="nav-link" asp-controller="Overtime" asp-action="MyOvertime">My Overtime</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Leave" asp-action="MyLeaves">My Leave</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Payroll" asp-action="MyPayslips">My Payslips</a>
                                 </li>
                             }
                             @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))

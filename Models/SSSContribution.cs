@@ -23,7 +23,19 @@ namespace itpayroll.Models
         [Display(Name = "Employer Share")]
         public decimal EmployerShare { get; set; }
 
+        [Required]
+        [Display(Name = "Monthly Salary Credit")]
+        public decimal MSC { get; set; }
+
+        [Required]
+        [Display(Name = "Employees' Compensation Contribution")]
+        public decimal ECC { get; set; }
+
+        [Required]
+        [Display(Name = "Total Contribution")]
+        public decimal TotalContribution { get; set; }
+
         [Display(Name = "Year")]
-        public int Year { get; set; } = 2024;
+        public int Year { get; set; } = 2025;
     }
 }

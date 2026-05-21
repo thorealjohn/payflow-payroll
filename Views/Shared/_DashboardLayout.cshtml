@@ -81,7 +81,7 @@
             </a>
         }
 
-        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
+        @if (User.IsInRole("SuperAdmin"))
         {
             bool isOrgSection = currentController == "Department" || currentController == "Position";
             <div class="sidebar-accordion">
@@ -103,7 +103,9 @@
 
         @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR"))
         {
-            bool isAttendanceSection = currentController == "Attendance" || currentController == "Leave";
+            bool isAttendanceSection = currentController == "Attendance" || currentController == "Leave"
+                || ViewContext.RouteData.Values["action"]?.ToString() == "MyAttendance"
+                || ViewContext.RouteData.Values["action"]?.ToString() == "MyLeaves";
             <div class="sidebar-accordion">
                 <a class="nav-link @(isAttendanceSection ? "active" : "")" data-bs-toggle="collapse" href="#attendanceCollapse" role="button" aria-expanded="@(isAttendanceSection ? "true" : "false")">
                     <i class="fas fa-clipboard-check"></i>
@@ -114,21 +116,60 @@
                     <a asp-controller="Attendance" asp-action="Index" class="nav-link @(currentController == "Attendance" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
                         <span class="text">All Attendance</span>
                     </a>
+                    <a asp-controller="Attendance" asp-action="MyAttendance" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyAttendance" ? "active" : "")">
+                        <span class="text">My Attendance</span>
+                    </a>
                     <a asp-controller="Leave" asp-action="Index" class="nav-link @(currentController == "Leave" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
                         <span class="text">Leave Requests</span>
+                    </a>
+                    <a asp-controller="Leave" asp-action="MyLeaves" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyLeaves" ? "active" : "")">
+                        <span class="text">My Leave</span>
                     </a>
                 </div>
             </div>
 
-            <a asp-controller="Overtime" asp-action="Index" class="nav-link @(currentController == "Overtime" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
-                <i class="fas fa-business-time"></i>
-                <span class="text">Overtime</span>
-            </a>
+            bool isOvertimeSection = currentController == "Overtime";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isOvertimeSection ? "active" : "")" data-bs-toggle="collapse" href="#overtimeCollapse" role="button" aria-expanded="@(isOvertimeSection ? "true" : "false")">
+                    <i class="fas fa-business-time"></i>
+                    <span class="text">Overtime</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isOvertimeSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isOvertimeSection ? "show" : "")" id="overtimeCollapse">
+                    <a asp-controller="Overtime" asp-action="Index" class="nav-link @(currentController == "Overtime" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <span class="text">Overtime Management</span>
+                    </a>
+                    <a asp-controller="Overtime" asp-action="MyOvertime" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "MyOvertime" ? "active" : "")">
+                        <span class="text">My Overtime</span>
+                    </a>
+                </div>
+            </div>
 
-            <a asp-controller="Payroll" asp-action="Index" class="nav-link @(currentController == "Payroll" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
-                <i class="fas fa-money-bill-wave"></i>
-                <span class="text">Payroll</span>
-            </a>
+            bool isPayrollSection = currentController == "Payroll" || currentController == "PayrollSettings";
+            <div class="sidebar-accordion">
+                <a class="nav-link @(isPayrollSection ? "active" : "")" data-bs-toggle="collapse" href="#payrollCollapse" role="button" aria-expanded="@(isPayrollSection ? "true" : "false")">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span class="text">Payroll</span>
+                    <i class="fas fa-chevron-right sidebar-chevron ms-auto @(isPayrollSection ? "rotated" : "")"></i>
+                </a>
+                <div class="collapse sidebar-submenu @(isPayrollSection ? "show" : "")" id="payrollCollapse">
+                    <a asp-controller="Payroll" asp-action="Process" class="nav-link @(currentController == "Payroll" && ViewContext.RouteData.Values["action"]?.ToString() == "Process" ? "active" : "")">
+                        <span class="text">Process Payroll</span>
+                    </a>
+                    <a asp-controller="Payroll" asp-action="Index" class="nav-link @(currentController == "Payroll" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <span class="text">Payroll History</span>
+                    </a>
+                    <a asp-controller="Payroll" asp-action="MyPayslips" class="nav-link @(currentController == "Payroll" && ViewContext.RouteData.Values["action"]?.ToString() == "MyPayslips" ? "active" : "")">
+                        <span class="text">Payslips</span>
+                    </a>
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <a asp-controller="PayrollSettings" asp-action="Index" class="nav-link @(currentController == "PayrollSettings" ? "active" : "")">
+                            <span class="text">Payroll Settings</span>
+                        </a>
+                    }
+                </div>
+            </div>
 
             bool isReportsSection = currentController == "Reports";
             <div class="sidebar-accordion">
@@ -173,6 +214,14 @@
                 <span class="text">My Payslips</span>
             </a>
 
+            <a asp-controller="Account" asp-action="Profile" class="nav-link @(currentController == "Account" && ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")">
+                <i class="fas fa-user-circle"></i>
+                <span class="text">Profile</span>
+            </a>
+        }
+
+        @if (User.IsInRole("Admin") || User.IsInRole("HR") || User.IsInRole("SuperAdmin"))
+        {
             <a asp-controller="Account" asp-action="Profile" class="nav-link @(currentController == "Account" && ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")">
                 <i class="fas fa-user-circle"></i>
                 <span class="text">Profile</span>

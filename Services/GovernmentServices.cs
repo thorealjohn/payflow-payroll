@@ -22,25 +22,34 @@ namespace itpayroll.Services
             return bracket?.EmployeeShare ?? 0;
         }
 
-        public decimal ComputePhilHealth(decimal salary)
+        public async Task<decimal> ComputePhilHealth(decimal salary)
         {
             if (salary <= 0)
                 return 0;
 
-            decimal min = 10000;
-            decimal max = 80000;
-            decimal rate = 0.04m;
+            var rate = await _context.PhilHealthRates.FirstOrDefaultAsync();
+            if (rate == null)
+                return 0;
 
-            var baseSalary = Math.Min(Math.Max(salary, min), max);
-            return (baseSalary * rate) / 2;
+            var baseSalary = Math.Min(Math.Max(salary, rate.MinSalary), rate.MaxSalary ?? salary);
+            return (baseSalary * rate.Rate) * rate.EmployeeSharePercentage;
         }
 
-        public decimal ComputePagIBIG(decimal salary)
+        public async Task<decimal> ComputePagIBIG(decimal salary)
         {
-            if (salary <= 1500)
-                return salary * 0.01m;
+            if (salary <= 0)
+                return 0;
 
-            return Math.Min(salary * 0.02m, 100);
+            var rate = await _context.PagIBIGRates
+                .Where(r => salary >= r.MinSalary && (r.MaxSalary == null || salary <= r.MaxSalary))
+                .OrderBy(r => r.MinSalary)
+                .FirstOrDefaultAsync();
+
+            if (rate == null)
+                return 0;
+
+            var contribution = salary * rate.EmployeeRate;
+            return Math.Min(contribution, rate.MaxContribution);
         }
     }
 }

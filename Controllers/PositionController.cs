@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+    [Authorize(Roles = $"{Roles.SuperAdmin}")]
     public class PositionController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -22,7 +22,8 @@ namespace itpayroll.Controllers
         {
             var positions = await _context.Positions
                 .Include(p => p.Department)
-                .OrderBy(p => p.Department.Name)
+                .OrderByDescending(p => p.IsActive)
+                .ThenBy(p => p.Department.Name)
                 .ThenBy(p => p.Name)
                 .ToListAsync();
 
@@ -122,17 +123,11 @@ namespace itpayroll.Controllers
             if (position == null)
                 return NotFound();
 
-            var hasEmployees = await _context.Employees.AnyAsync(e => e.PositionId == id);
-            if (hasEmployees)
-            {
-                TempData["Error"] = "This position cannot be deleted because it is assigned to one or more employees.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            _context.Positions.Remove(position);
+            position.IsActive = !position.IsActive;
+            _context.Positions.Update(position);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Position deleted successfully.";
+            TempData["Success"] = position.IsActive ? "Position restored successfully." : "Position deactivated successfully.";
             return RedirectToAction(nameof(Index));
         }
 

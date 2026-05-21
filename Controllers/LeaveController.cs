@@ -81,8 +81,8 @@ namespace itpayroll.Controllers
             return View(leaveRequests);
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyLeaves(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
+        public async Task<IActionResult> MyLeaves(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null, int page = 1)
         {
             var user = await _userManager.GetUserAsync(User);
             var userId = user?.Id;
@@ -104,16 +104,25 @@ namespace itpayroll.Controllers
                 query = query.Where(l => l.EndDate <= to.Value);
             }
 
-            var leaves = await query.OrderByDescending(l => l.CreatedDate).ToListAsync();
+            int pageSize = 10;
+            int total = await query.CountAsync();
+
+            var leaves = await query
+                .OrderByDescending(l => l.CreatedDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             ViewBag.Period = period;
             ViewBag.CustomDateFrom = customDateFrom;
             ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
             return View(leaves);
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public IActionResult Create()
         {
             return View();
@@ -121,7 +130,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> Create(CreateLeaveRequestViewModel model)
         {
             if (!ModelState.IsValid)
@@ -196,15 +205,21 @@ namespace itpayroll.Controllers
             return View(leaveRequest);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
         public async Task<IActionResult> Approve(int id)
         {
             var leaveRequest = await _context.LeaveRequests
                 .Include(l => l.Employee)
+                .ThenInclude(e => e.User)
                 .FirstOrDefaultAsync(l => l.LeaveRequestId == id);
 
             if (leaveRequest == null)
                 return NotFound();
+
+            if (!await CanApproveRequest(leaveRequest.Employee?.User))
+                return RedirectToAction(nameof(Index));
 
             leaveRequest.Status = LeaveStatus.Approved;
             leaveRequest.ApprovedById = _userManager.GetUserId(User);
@@ -229,7 +244,9 @@ namespace itpayroll.Controllers
         public async Task<IActionResult> Reject(int id)
         {
             var leaveRequest = await _context.LeaveRequests
-                .FindAsync(id);
+                .Include(l => l.Employee)
+                .ThenInclude(e => e.User)
+                .FirstOrDefaultAsync(l => l.LeaveRequestId == id);
 
             if (leaveRequest == null)
                 return NotFound();
@@ -244,10 +261,14 @@ namespace itpayroll.Controllers
         {
             var leaveRequest = await _context.LeaveRequests
                 .Include(l => l.Employee)
+                .ThenInclude(e => e.User)
                 .FirstOrDefaultAsync(l => l.LeaveRequestId == id);
 
             if (leaveRequest == null)
                 return NotFound();
+
+            if (!await CanApproveRequest(leaveRequest.Employee?.User))
+                return RedirectToAction(nameof(Index));
 
             leaveRequest.Status = LeaveStatus.Rejected;
             leaveRequest.RejectionReason = rejectionReason;
@@ -269,7 +290,32 @@ namespace itpayroll.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
+        private async Task<bool> CanApproveRequest(ApplicationUser? requestorUser)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null || requestorUser == null)
+                return false;
+
+            if (User.IsInRole(Roles.SuperAdmin))
+                return true;
+
+            var currentRoles = await _userManager.GetRolesAsync(currentUser);
+            var requestorRoles = await _userManager.GetRolesAsync(requestorUser);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
+            var requestorRole = requestorRoles.FirstOrDefault() ?? "";
+
+            if (!RoleHierarchy.CanApprove(currentRole, requestorRole))
+            {
+                TempData["Error"] = "You do not have sufficient authority to perform this action. Only someone with a higher role can approve or reject this request.";
+                return false;
+            }
+
+            return true;
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> Cancel(int id)
         {
             var user = await _userManager.GetUserAsync(User);

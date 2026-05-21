@@ -36,6 +36,10 @@ namespace itpayroll.Models
         [MaxLength(200)]
         public string? Description { get; set; }
 
+        [Display(Name = "Rest Days")]
+        [MaxLength(100)]
+        public string RestDays { get; set; } = "Saturday,Sunday";
+
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     }
 }

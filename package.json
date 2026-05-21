@@ -2,6 +2,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
     "bootstrap": "^5.3.8",
+    "qrcode": "^1.5.4",
     "tom-select": "^2.6.1"
   }
 }

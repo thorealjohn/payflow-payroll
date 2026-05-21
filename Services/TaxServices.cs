@@ -1,24 +1,39 @@
-﻿namespace itpayroll.Services
+﻿using itpayroll.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace itpayroll.Services
 {
     public class TaxService
     {
-        public decimal ComputeTax(decimal taxableIncome)
+        private readonly ApplicationDbContext _context;
+
+        public TaxService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<decimal> ComputeTax(decimal taxableIncome)
         {
             if (taxableIncome < 0)
                 taxableIncome = 0;
 
-            if (taxableIncome <= 20833) return 0;
+            var brackets = await _context.TaxBrackets
+                .OrderBy(t => t.SortOrder)
+                .ToListAsync();
 
-            if (taxableIncome <= 33333)
-                return (taxableIncome - 20833) * 0.15m;
+            foreach (var b in brackets)
+            {
+                if (taxableIncome >= b.MinAmount)
+                {
+                    if (!b.MaxAmount.HasValue || taxableIncome <= b.MaxAmount.Value)
+                    {
+                        return b.BaseTax + (taxableIncome - b.MinAmount) * b.TaxRate;
+                    }
+                }
+            }
 
-            if (taxableIncome <= 66667)
-                return 1875 + (taxableIncome - 33333) * 0.20m;
-
-            if (taxableIncome <= 166667)
-                return 8541.80m + (taxableIncome - 66667) * 0.25m;
-
-            return 33541.80m + (taxableIncome - 166667) * 0.30m;
+            return 0;
         }
     }
 }

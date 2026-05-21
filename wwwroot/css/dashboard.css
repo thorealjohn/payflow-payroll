@@ -173,7 +173,8 @@ body {
     padding-top: 20px;
     transition: all 0.3s;
     z-index: 1000;
-    overflow: visible !important;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
     .sidebar.collapsed {

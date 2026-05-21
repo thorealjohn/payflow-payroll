@@ -99,6 +99,7 @@ namespace itpayroll.Controllers
             ViewBag.CurrentFilter = searchString;
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = (int)Math.Ceiling((double)totalEmployees / pageSize);
+            ViewBag.CurrentUserRole = GetCurrentUserRole();
 
             return View(model);
         }
@@ -255,7 +256,6 @@ namespace itpayroll.Controllers
                     PositionId = model.PositionId,
                     EmploymentType = model.EmploymentType,
                     SalaryType = model.SalaryType,
-                    PayFrequency = model.PayFrequency,
                     BankName = model.BankName,
                     BankAccountNumber = model.BankAccountNumber,
                     TIN = model.TIN,
@@ -308,6 +308,13 @@ namespace itpayroll.Controllers
             var currentRole = roles.FirstOrDefault() ?? Roles.Employee;
 
             var currentUserRole = GetCurrentUserRole();
+
+            if (!await CanManageEmployee(employee.User))
+            {
+                TempData["Error"] = "You are not authorized to edit this account.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var allowedRoles = RoleHierarchy.GetAllowedRoles(currentUserRole);
             if (!allowedRoles.Contains(currentRole))
             {
@@ -348,7 +355,6 @@ namespace itpayroll.Controllers
                 PositionId = employee.PositionId,
                 EmploymentType = employee.EmploymentType,
                 SalaryType = employee.SalaryType,
-                PayFrequency = employee.PayFrequency,
                 BankName = employee.BankName,
                 BankAccountNumber = employee.BankAccountNumber,
                 TIN = employee.TIN,
@@ -402,6 +408,12 @@ namespace itpayroll.Controllers
             if (employee == null)
                 return NotFound();
 
+            if (!await CanManageEmployee(employee.User))
+            {
+                TempData["Error"] = "You are not authorized to edit this account.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var before = BuildEmployeeAuditSnapshot(employee);
 
             if (employee.User != null)
@@ -446,7 +458,6 @@ namespace itpayroll.Controllers
             employee.PositionId = model.PositionId;
             employee.EmploymentType = model.EmploymentType;
             employee.SalaryType = model.SalaryType;
-            employee.PayFrequency = model.PayFrequency;
             employee.BankName = model.BankName;
             employee.BankAccountNumber = model.BankAccountNumber;
             employee.TIN = model.TIN;
@@ -517,6 +528,12 @@ namespace itpayroll.Controllers
             if (employee == null)
                 return NotFound();
 
+            if (!await CanManageEmployee(employee.User))
+            {
+                TempData["Error"] = "You are not authorized to deactivate this account.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var before = BuildEmployeeAuditSnapshot(employee);
             employee.Status = EmploymentStatus.Inactive;
             employee.TerminationDate ??= DateTime.UtcNow.Date;
@@ -555,6 +572,26 @@ namespace itpayroll.Controllers
         }
 
         #region Helpers
+        private async Task<bool> CanManageEmployee(ApplicationUser? targetUser)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null || targetUser == null)
+                return false;
+
+            if (User.IsInRole(Roles.SuperAdmin))
+                return true;
+
+            if (targetUser.Id == currentUser.Id)
+                return true;
+
+            var currentRoles = await _userManager.GetRolesAsync(currentUser);
+            var targetRoles = await _userManager.GetRolesAsync(targetUser);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
+            var targetRole = targetRoles.FirstOrDefault() ?? "";
+
+            return RoleHierarchy.CanApprove(currentRole, targetRole);
+        }
+
         private static Dictionary<string, object?> BuildEmployeeAuditSnapshot(Employee employee)
         {
             return new Dictionary<string, object?>
@@ -572,8 +609,7 @@ namespace itpayroll.Controllers
                 ["Department"] = employee.Department?.Name,
                 ["Position"] = employee.Position?.Name,
                 ["EmploymentType"] = employee.EmploymentType?.ToString(),
-                ["SalaryType"] = employee.SalaryType.ToString(),
-                ["PayFrequency"] = employee.PayFrequency.ToString()
+                ["SalaryType"] = employee.SalaryType.ToString()
             };
         }
 

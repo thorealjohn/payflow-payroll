@@ -173,8 +173,11 @@ namespace itpayroll.Controllers
                 ws.Cells[row, 3].Value = p.PeriodStart.ToString("yyyy-MM-dd");
                 ws.Cells[row, 4].Value = p.PeriodEnd.ToString("yyyy-MM-dd");
                 ws.Cells[row, 5].Value = (double)p.GrossPay;
+                ws.Cells[row, 5].Style.Numberformat.Format = "₱#,##0.00";
                 ws.Cells[row, 6].Value = (double)p.TotalDeductions;
+                ws.Cells[row, 6].Style.Numberformat.Format = "₱#,##0.00";
                 ws.Cells[row, 7].Value = (double)p.NetPay;
+                ws.Cells[row, 7].Style.Numberformat.Format = "₱#,##0.00";
                 ws.Cells[row, 8].Value = p.Status.ToString();
                 row++;
             }
@@ -251,16 +254,16 @@ namespace itpayroll.Controllers
                             var periodStr = $"{p.PeriodStart:MMM dd, yyyy} - {p.PeriodEnd:MMM dd, yyyy}";
                             table.Cell().Padding(2).Text(name).FontSize(8);
                             table.Cell().Padding(2).Text(periodStr).FontSize(8);
-                            table.Cell().Padding(2).AlignRight().Text($"P{p.GrossPay:N2}").FontSize(8);
-                            table.Cell().Padding(2).AlignRight().Text($"P{p.TotalDeductions:N2}").FontSize(8);
-                            table.Cell().Padding(2).AlignRight().Text($"P{p.NetPay:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"₱{p.GrossPay:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"₱{p.TotalDeductions:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"₱{p.NetPay:N2}").FontSize(8);
                         }
 
                         table.Cell().Padding(2).Text("TOTALS").Bold().FontSize(9);
                         table.Cell().Padding(2).Text("").FontSize(8);
-                        table.Cell().Padding(2).AlignRight().Text($"P{totalGross:N2}").Bold().FontSize(9);
-                        table.Cell().Padding(2).AlignRight().Text($"P{totalDeductions:N2}").Bold().FontSize(9);
-                        table.Cell().Padding(2).AlignRight().Text($"P{totalNet:N2}").Bold().FontSize(9);
+                        table.Cell().Padding(2).AlignRight().Text($"₱{totalGross:N2}").Bold().FontSize(9);
+                        table.Cell().Padding(2).AlignRight().Text($"₱{totalDeductions:N2}").Bold().FontSize(9);
+                        table.Cell().Padding(2).AlignRight().Text($"₱{totalNet:N2}").Bold().FontSize(9);
                     });
 
                     page.Footer().Row(r =>
@@ -628,6 +631,7 @@ namespace itpayroll.Controllers
                 ws.Cells[row, 2].Value = $"{e.User?.FirstName} {e.User?.LastName}";
                 ws.Cells[row, 3].Value = e.User?.Email;
                 ws.Cells[row, 4].Value = (double)e.BasicSalary;
+                ws.Cells[row, 4].Style.Numberformat.Format = "₱#,##0.00";
                 ws.Cells[row, 5].Value = e.Shift?.ShiftName ?? "N/A";
                 ws.Cells[row, 6].Value = e.HireDate.ToString("yyyy-MM-dd");
                 ws.Cells[row, 7].Value = e.Status.ToString();
@@ -706,7 +710,7 @@ namespace itpayroll.Controllers
                             table.Cell().Padding(2).Text($"{e.User?.FirstName} {e.User?.LastName}").FontSize(8);
                             table.Cell().Padding(2).Text(e.Department?.Name ?? "N/A").FontSize(8);
                             table.Cell().Padding(2).Text(e.EmploymentType?.ToString() ?? "N/A").FontSize(8);
-                            table.Cell().Padding(2).AlignRight().Text($"P{e.BasicSalary:N2}").FontSize(8);
+                            table.Cell().Padding(2).AlignRight().Text($"₱{e.BasicSalary:N2}").FontSize(8);
                             table.Cell().Padding(2).Text(e.HireDate.ToString("MMM dd, yyyy")).FontSize(8);
                             table.Cell().Padding(2).Text(e.Status.ToString()).FontSize(8);
                         }

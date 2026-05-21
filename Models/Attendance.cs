@@ -56,6 +56,8 @@ namespace itpayroll.Models
         // AUDIT
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
+        public bool IsActive { get; set; } = true;
+
         // VALIDATION
         public IEnumerable<ValidationResult> Validate(ValidationContext context)
         {

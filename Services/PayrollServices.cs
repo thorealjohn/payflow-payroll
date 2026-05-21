@@ -30,26 +30,28 @@ namespace itpayroll.Services
         // CORE CALCULATIONS
         // =========================
 
-        private decimal HourlyRate(decimal monthly)
-            => monthly / 22 / 8;
-
-        private decimal ComputeBasic(decimal salary, double hours)
-            => HourlyRate(salary) * (decimal)hours;
-
-        private decimal ComputeOT(decimal salary, double ot, DayType dayType)
-        {
-            var multiplier = dayType switch
+        private decimal HourlyRate(Employee employee)
+            => employee.SalaryType switch
             {
-                DayType.Regular => 1.25m,
-                DayType.RestDay or DayType.Holiday => 1.30m,
-                DayType.RestDayHoliday => 1.50m,
-                _ => 1.25m
+                SalaryType.Daily => employee.BasicSalary / 8,
+                SalaryType.Hourly => employee.BasicSalary,
+                _ => employee.BasicSalary / 22 / 8
             };
-            return HourlyRate(salary) * (decimal)ot * multiplier;
+
+        private decimal ComputeOT(Employee employee, double ot, DayType dayType)
+        {
+            var premiumRate = dayType switch
+            {
+                DayType.Regular => 0.25m,
+                DayType.RestDay or DayType.Holiday => 0.30m,
+                DayType.RestDayHoliday => 0.50m,
+                _ => 0.25m
+            };
+            return HourlyRate(employee) * (decimal)ot * premiumRate;
         }
 
-        private decimal ComputeNightShiftDifferential(decimal salary, double nightShiftHours)
-            => HourlyRate(salary) * (decimal)nightShiftHours * 0.10m;
+        private decimal ComputeNightShiftDifferential(Employee employee, double nightShiftHours)
+            => HourlyRate(employee) * (decimal)nightShiftHours * 0.10m;
 
         /// <summary>
         /// When statutory totals exceed period gross (e.g. MSC floors), scale deductions
@@ -128,7 +130,8 @@ namespace itpayroll.Services
         public async Task<Payroll> ProcessPayrollAsync(
             int employeeId,
             DateTime start,
-            DateTime end)
+            DateTime end,
+            string processedByUserId = "")
         {
             var employee = await _context.Employees
                 .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
@@ -146,21 +149,45 @@ namespace itpayroll.Services
                 .Where(o => o.EmployeeId == employeeId && o.Date >= start && o.Date <= end && o.Status == OvertimeStatus.Approved)
                 .ToListAsync();
 
-            // 🔹 Aggregate totals
-            double totalHours = attendanceRecords.Sum(a => a.TotalHours);
-            double totalOT = approvedOvertimes.Sum(o => o.Hours); // Use approved overtime only
-            double totalNightShiftHours = attendanceRecords.Sum(a => a.NightShiftHours);
+            // 🔹 Build OT hours lookup per date
+            var otHoursByDate = approvedOvertimes
+                .GroupBy(o => o.Date.Date)
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.Hours));
 
-            // 🔹 Calculate weighted overtime (simplified: use most common day type or Regular)
-            var mostCommonDayType = attendanceRecords
-                .GroupBy(a => a.DayType)
-                .OrderByDescending(g => g.Count())
-                .FirstOrDefault()?.Key ?? DayType.Regular;
+            // 🔹 Per-record earnings
+            decimal basic = 0;
+            decimal overtime = 0;
+            double totalNightShiftHours = 0;
 
-            // 🔹 Earnings
-            var basic = ComputeBasic(employee.BasicSalary, totalHours);
-            var overtime = ComputeOT(employee.BasicSalary, totalOT, mostCommonDayType);
-            var nightShiftDiff = ComputeNightShiftDifferential(employee.BasicSalary, totalNightShiftHours);
+            foreach (var record in attendanceRecords)
+            {
+                var hourly = HourlyRate(employee);
+                var date = record.Date.Date;
+                totalNightShiftHours += record.NightShiftHours;
+
+                if (record.DayType is DayType.RestDay or DayType.RestDayHoliday)
+                {
+                    // Rest day: all hours at 130% (no late/undertime deduction)
+                    basic += hourly * (decimal)record.TotalHours * 1.30m;
+                }
+                else
+                {
+                    // Regular day: scheduled 480 min minus late/undertime
+                    var paidMin = Math.Max(0, 480 - record.LateMinutes - record.UndertimeMinutes);
+                    basic += hourly * (decimal)paidMin / 60m;
+                    // Base rate for approved OT hours on this day
+                    basic += hourly * (decimal)otHoursByDate.GetValueOrDefault(date, 0);
+                }
+            }
+
+            foreach (var ot in approvedOvertimes)
+            {
+                var attendanceOnDate = attendanceRecords.FirstOrDefault(a => a.Date == ot.Date);
+                var dayType = attendanceOnDate?.DayType ?? DayType.Regular;
+                overtime += ComputeOT(employee, ot.Hours, dayType);
+            }
+
+            var nightShiftDiff = ComputeNightShiftDifferential(employee, totalNightShiftHours);
 
             var gross = basic + overtime + nightShiftDiff;
 
@@ -171,13 +198,17 @@ namespace itpayroll.Services
             var sss = contributionBase > 0
                 ? await _gov.ComputeSSS(contributionBase)
                 : 0;
-            var phil = _gov.ComputePhilHealth(contributionBase);
-            var pagibig = _gov.ComputePagIBIG(contributionBase);
+            var phil = contributionBase > 0
+                ? await _gov.ComputePhilHealth(contributionBase)
+                : 0;
+            var pagibig = contributionBase > 0
+                ? await _gov.ComputePagIBIG(contributionBase)
+                : 0;
 
             var govTotal = sss + phil + pagibig;
 
             var taxable = gross - govTotal;
-            var tax = _tax.ComputeTax(taxable);
+            var tax = await _tax.ComputeTax(taxable);
 
             CapDeductionsToGross(ref sss, ref phil, ref pagibig, ref tax, gross);
 
@@ -193,7 +224,9 @@ namespace itpayroll.Services
                 GrossPay = gross,
                 TotalDeductions = totalDed,
                 NetPay = net,
-                Status = PayrollStatus.Processed
+                Status = PayrollStatus.PendingApproval,
+                ProcessedById = processedByUserId,
+                CreatedBy = processedByUserId
             };
 
             var validationResults = new List<ValidationResult>();

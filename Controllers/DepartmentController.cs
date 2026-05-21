@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace itpayroll.Controllers
 {
-    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
+    [Authorize(Roles = $"{Roles.SuperAdmin}")]
     public class DepartmentController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -20,7 +20,8 @@ namespace itpayroll.Controllers
         public async Task<IActionResult> Index()
         {
             var departments = await _context.Departments
-                .OrderBy(d => d.Name)
+                .OrderByDescending(d => d.IsActive)
+                .ThenBy(d => d.Name)
                 .ToListAsync();
 
             ViewBag.EmployeeCounts = await _context.Employees
@@ -124,19 +125,11 @@ namespace itpayroll.Controllers
             if (department == null)
                 return NotFound();
 
-            var hasPositions = await _context.Positions.AnyAsync(p => p.DepartmentId == id);
-            var hasEmployees = await _context.Employees.AnyAsync(e => e.DepartmentId == id);
-
-            if (hasPositions || hasEmployees)
-            {
-                TempData["Error"] = "This department cannot be deleted because it is still in use.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            _context.Departments.Remove(department);
+            department.IsActive = !department.IsActive;
+            _context.Departments.Update(department);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Department deleted successfully.";
+            TempData["Success"] = department.IsActive ? "Department restored successfully." : "Department deactivated successfully.";
             return RedirectToAction(nameof(Index));
         }
     }

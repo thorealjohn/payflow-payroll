@@ -1,0 +1,406 @@
+@model itpayroll.Models.PayrollSetting
+@{
+    ViewData["Title"] = "Payroll Settings";
+    var taxBrackets = ViewBag.TaxBrackets as List<itpayroll.Models.TaxBracket> ?? new();
+    var sssContributions = ViewBag.SSSContributions as List<itpayroll.Models.SSSContribution> ?? new();
+    var philHealthRates = ViewBag.PhilHealthRates as List<itpayroll.Models.PhilHealthRate> ?? new();
+    var pagIBIGRates = ViewBag.PagIBIGRates as List<itpayroll.Models.PagIBIGRate> ?? new();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Payroll Settings</h4>
+        <small class="text-muted">Configure payroll frequency, contributions, and tax brackets</small>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+            General
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="sss-tab" data-bs-toggle="tab" data-bs-target="#sss" type="button" role="tab">
+            SSS
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="philhealth-tab" data-bs-toggle="tab" data-bs-target="#philhealth" type="button" role="tab">
+            PhilHealth
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pagibig-tab" data-bs-toggle="tab" data-bs-target="#pagibig" type="button" role="tab">
+            Pag-IBIG
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tax-tab" data-bs-toggle="tab" data-bs-target="#tax" type="button" role="tab">
+            Tax
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="general" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <form asp-action="SaveSettings" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <input asp-for="Id" type="hidden" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Frequency" class="form-label"></label>
+                            <select asp-for="Frequency" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Models.PayrollFrequency>()"></select>
+                            <span asp-validation-for="Frequency" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Cutoff Configuration</h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label asp-for="Cutoff1StartDay" class="form-label"></label>
+                            <input asp-for="Cutoff1StartDay" class="form-control" type="number" min="1" max="28" />
+                            <span asp-validation-for="Cutoff1StartDay" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label asp-for="Cutoff1EndDay" class="form-label"></label>
+                            <input asp-for="Cutoff1EndDay" class="form-control" type="number" min="1" max="28" />
+                            <span asp-validation-for="Cutoff1EndDay" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label asp-for="Cutoff2StartDay" class="form-label"></label>
+                            <input asp-for="Cutoff2StartDay" class="form-control" type="number" min="1" max="28" />
+                            <span asp-validation-for="Cutoff2StartDay" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label asp-for="Cutoff2EndDay" class="form-label"></label>
+                            <input asp-for="Cutoff2EndDay" class="form-control" type="number" min="1" max="31" />
+                            <span asp-validation-for="Cutoff2EndDay" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="sss" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5 class="card-title mb-0">SSS Contribution Table</h5>
+                    <button class="btn btn-sm btn-success" onclick="showAddSSS()">Add Bracket</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Min Salary</th>
+                                <th>Max Salary</th>
+                                <th>MSC</th>
+                                <th>Employee Share</th>
+                                <th>Employer Share</th>
+                                <th>ECC</th>
+                                <th>Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in sssContributions)
+                            {
+                                <tr>
+                                    <td>@s.MinSalary.ToString("N2")</td>
+                                    <td>@s.MaxSalary.ToString("N2")</td>
+                                    <td>@s.MSC.ToString("N2")</td>
+                                    <td>@s.EmployeeShare.ToString("N2")</td>
+                                    <td>@s.EmployerShare.ToString("N2")</td>
+                                    <td>@s.ECC.ToString("N2")</td>
+                                    <td>@s.TotalContribution.ToString("N2")</td>
+                                    <td>
+                                        <form asp-action="DeleteSSSBracket" method="post" class="d-inline" onsubmit="return confirm('Delete this bracket?')">
+                                            <input type="hidden" name="id" value="@s.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-action="SaveSSSBracket" method="post" id="sssForm" style="display:none" class="mt-3 p-3 border rounded">
+                    <h6>Add SSS Bracket</h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Min Salary</label>
+                            <input name="MinSalary" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Max Salary</label>
+                            <input name="MaxSalary" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">MSC</label>
+                            <input name="MSC" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Employee Share</label>
+                            <input name="EmployeeShare" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Employer Share</label>
+                            <input name="EmployerShare" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">ECC</label>
+                            <input name="ECC" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Total Contribution</label>
+                            <input name="TotalContribution" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-3 mb-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-sm btn-primary me-1">Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="hideAddSSS()">Cancel</button>
+                        </div>
+                    </div>
+                    <input name="Year" type="hidden" value="@DateTime.UtcNow.Year" />
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="philhealth" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5 class="card-title mb-0">PhilHealth Rates</h5>
+                    <button class="btn btn-sm btn-success" onclick="showAddPhilHealth()">Add Rate</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Min Salary</th>
+                                <th>Max Salary</th>
+                                <th>Premium Rate</th>
+                                <th>Employee Share</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in philHealthRates)
+                            {
+                                <tr>
+                                    <td>@r.MinSalary.ToString("N2")</td>
+                                    <td>@(r.MaxSalary?.ToString("N2") ?? "Unlimited")</td>
+                                    <td>@(r.Rate.ToString("P"))</td>
+                                    <td>@(r.EmployeeSharePercentage.ToString("P"))</td>
+                                    <td>
+                                        <form asp-action="DeletePhilHealthRate" method="post" class="d-inline" onsubmit="return confirm('Delete this rate?')">
+                                            <input type="hidden" name="id" value="@r.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-action="SavePhilHealthRate" method="post" id="philhealthForm" style="display:none" class="mt-3 p-3 border rounded">
+                    <h6>Add PhilHealth Rate</h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Min Salary</label>
+                            <input name="MinSalary" class="form-control form-control-sm" type="number" step="0.01" value="10000" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Max Salary</label>
+                            <input name="MaxSalary" class="form-control form-control-sm" type="number" step="0.01" value="100000" />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Premium Rate</label>
+                            <input name="Rate" class="form-control form-control-sm" type="number" step="0.01" value="0.05" required />
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Employee Share (%)</label>
+                            <input name="EmployeeSharePercentage" class="form-control form-control-sm" type="number" step="0.01" value="0.50" required />
+                        </div>
+                        <div class="col-md-3 mb-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-sm btn-primary me-1">Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="hideAddPhilHealth()">Cancel</button>
+                        </div>
+                    </div>
+                    <input name="Year" type="hidden" value="@DateTime.UtcNow.Year" />
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="pagibig" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5 class="card-title mb-0">Pag-IBIG Rates</h5>
+                    <button class="btn btn-sm btn-success" onclick="showAddPagIBIG()">Add Rate</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Min Salary</th>
+                                <th>Max Salary</th>
+                                <th>Employee Rate</th>
+                                <th>Employer Rate</th>
+                                <th>Max Contribution</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in pagIBIGRates)
+                            {
+                                <tr>
+                                    <td>@r.MinSalary.ToString("N2")</td>
+                                    <td>@(r.MaxSalary?.ToString("N2") ?? "Unlimited")</td>
+                                    <td>@(r.EmployeeRate.ToString("P"))</td>
+                                    <td>@(r.EmployerRate.ToString("P"))</td>
+                                    <td>@r.MaxContribution.ToString("N2")</td>
+                                    <td>
+                                        <form asp-action="DeletePagIBIGRate" method="post" class="d-inline" onsubmit="return confirm('Delete this rate?')">
+                                            <input type="hidden" name="id" value="@r.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-action="SavePagIBIGRate" method="post" id="pagibigForm" style="display:none" class="mt-3 p-3 border rounded">
+                    <h6>Add Pag-IBIG Rate</h6>
+                    <div class="row">
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Min Salary</label>
+                            <input name="MinSalary" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Max Salary</label>
+                            <input name="MaxSalary" class="form-control form-control-sm" type="number" step="0.01" />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Employee Rate</label>
+                            <input name="EmployeeRate" class="form-control form-control-sm" type="number" step="0.01" value="0.02" required />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Employer Rate</label>
+                            <input name="EmployerRate" class="form-control form-control-sm" type="number" step="0.01" value="0.02" required />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Max Contribution</label>
+                            <input name="MaxContribution" class="form-control form-control-sm" type="number" step="0.01" value="100" required />
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-sm btn-primary me-1">Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="hideAddPagIBIG()">Cancel</button>
+                        </div>
+                    </div>
+                    <input name="Year" type="hidden" value="@DateTime.UtcNow.Year" />
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="tax" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5 class="card-title mb-0">Tax Brackets (TRAIN Law)</h5>
+                    <button class="btn btn-sm btn-success" onclick="showAddTax()">Add Bracket</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Min Amount</th>
+                                <th>Max Amount</th>
+                                <th>Base Tax</th>
+                                <th>Tax Rate</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in taxBrackets)
+                            {
+                                <tr>
+                                    <td>@t.SortOrder</td>
+                                    <td>@t.MinAmount.ToString("N2")</td>
+                                    <td>@(t.MaxAmount?.ToString("N2") ?? "Above")</td>
+                                    <td>@t.BaseTax.ToString("N2")</td>
+                                    <td>@(t.TaxRate.ToString("P"))</td>
+                                    <td>
+                                        <form asp-action="DeleteTaxBracket" method="post" class="d-inline" onsubmit="return confirm('Delete this bracket?')">
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-action="SaveTaxBracket" method="post" id="taxForm" style="display:none" class="mt-3 p-3 border rounded">
+                    <h6>Add Tax Bracket</h6>
+                    <div class="row">
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Sort Order</label>
+                            <input name="SortOrder" class="form-control form-control-sm" type="number" required />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Min Amount</label>
+                            <input name="MinAmount" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Max Amount</label>
+                            <input name="MaxAmount" class="form-control form-control-sm" type="number" step="0.01" />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Base Tax</label>
+                            <input name="BaseTax" class="form-control form-control-sm" type="number" step="0.01" required />
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Tax Rate</label>
+                            <input name="TaxRate" class="form-control form-control-sm" type="number" step="0.01" value="0.15" required />
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-sm btn-primary me-1">Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="hideAddTax()">Cancel</button>
+                        </div>
+                    </div>
+                    <input name="Year" type="hidden" value="@DateTime.UtcNow.Year" />
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function showAddSSS() { document.getElementById('sssForm').style.display = 'block'; }
+        function hideAddSSS() { document.getElementById('sssForm').style.display = 'none'; }
+        function showAddPhilHealth() { document.getElementById('philhealthForm').style.display = 'block'; }
+        function hideAddPhilHealth() { document.getElementById('philhealthForm').style.display = 'none'; }
+        function showAddPagIBIG() { document.getElementById('pagibigForm').style.display = 'block'; }
+        function hideAddPagIBIG() { document.getElementById('pagibigForm').style.display = 'none'; }
+        function showAddTax() { document.getElementById('taxForm').style.display = 'block'; }
+        function hideAddTax() { document.getElementById('taxForm').style.display = 'none'; }
+    </script>
+}

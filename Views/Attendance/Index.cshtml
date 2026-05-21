@@ -49,6 +49,7 @@
                     <th class="px-4">Day Type</th>
                     <th class="px-4">Late (min)</th>
                     <th class="px-4">Undertime (min)</th>
+                    <th class="px-4">Status</th>
                     <th class="text-end px-4">Actions</th>
                 </tr>
             </thead>
@@ -64,7 +65,7 @@
                         _ => "bg-danger"
                     };
 
-                    <tr>
+                    <tr class="@(!a.IsActive ? "table-secondary" : "")">
                         <td class="px-4">@a.Employee.User?.FirstName @a.Employee.User?.LastName</td>
                         <td class="px-4">@a.Date.ToString("MMM dd, yyyy")</td>
                         <td class="px-4">@a.TimeIn.ToString(@"hh\:mm")</td>
@@ -99,18 +100,25 @@
                             }
                         </td>
 
-                        <td class="text-end px-4">
-                            <a asp-action="Edit"
-                               asp-route-id="@a.AttendanceId"
-                               class="btn btn-sm btn-outline-primary">
-                                Edit
-                            </a>
+                        <td class="px-4">
+                            <span class="badge @(a.IsActive ? "bg-success" : "bg-secondary")">@(a.IsActive ? "Active" : "Inactive")</span>
+                        </td>
 
-                            <a asp-action="Delete"
-                               asp-route-id="@a.AttendanceId"
-                               class="btn btn-sm btn-outline-danger">
-                                Delete
-                            </a>
+                        <td class="text-end px-4">
+                            @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                            {
+                                <a asp-action="Edit"
+                                   asp-route-id="@a.AttendanceId"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Edit
+                                </a>
+
+                                <a asp-action="Delete"
+                                   asp-route-id="@a.AttendanceId"
+                                   class="btn btn-sm btn-outline-danger">
+                                    @(a.IsActive ? "Delete" : "Restore")
+                                </a>
+                            }
                         </td>
                     </tr>
                 }
@@ -118,7 +126,7 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="11">
+                        <td colspan="12">
                             <div class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1"></i>
                                 <p class="mt-2 mb-0">No attendance records yet</p>

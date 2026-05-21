@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace itpayroll.Migrations
 {
     /// <inheritdoc />
-    public partial class CleanSeedIni2 : Migration
+    public partial class CleanFinalIni : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -106,6 +106,75 @@ namespace itpayroll.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Departments",
+                columns: table => new
+                {
+                    DepartmentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Departments", x => x.DepartmentId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PagIBIGRates",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MinSalary = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    MaxSalary = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: true),
+                    EmployeeRate = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    EmployerRate = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    MaxContribution = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    Year = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PagIBIGRates", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PayrollSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Frequency = table.Column<int>(type: "int", nullable: false),
+                    Cutoff1StartDay = table.Column<int>(type: "int", nullable: false),
+                    Cutoff1EndDay = table.Column<int>(type: "int", nullable: false),
+                    Cutoff2StartDay = table.Column<int>(type: "int", nullable: false),
+                    Cutoff2EndDay = table.Column<int>(type: "int", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PayrollSettings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PhilHealthRates",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MinSalary = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    MaxSalary = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: true),
+                    Rate = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    EmployeeSharePercentage = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    Year = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PhilHealthRates", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Shifts",
                 columns: table => new
                 {
@@ -119,6 +188,7 @@ namespace itpayroll.Migrations
                     IsOvernight = table.Column<bool>(type: "bit", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    RestDays = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -136,11 +206,32 @@ namespace itpayroll.Migrations
                     MaxSalary = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
                     EmployeeShare = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
                     EmployerShare = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    MSC = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    ECC = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    TotalContribution = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
                     Year = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SSSContributions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TaxBrackets",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MinAmount = table.Column<decimal>(type: "decimal(14,2)", precision: 14, scale: 2, nullable: false),
+                    MaxAmount = table.Column<decimal>(type: "decimal(14,2)", precision: 14, scale: 2, nullable: true),
+                    BaseTax = table.Column<decimal>(type: "decimal(14,2)", precision: 14, scale: 2, nullable: false),
+                    TaxRate = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    Year = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaxBrackets", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -274,6 +365,28 @@ namespace itpayroll.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Positions",
+                columns: table => new
+                {
+                    PositionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    DepartmentId = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Positions", x => x.PositionId);
+                    table.ForeignKey(
+                        name: "FK_Positions_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Employees",
                 columns: table => new
                 {
@@ -286,11 +399,10 @@ namespace itpayroll.Migrations
                     HireDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     TerminationDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ShiftId = table.Column<int>(type: "int", nullable: true),
-                    Department = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Position = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    DepartmentId = table.Column<int>(type: "int", nullable: true),
+                    PositionId = table.Column<int>(type: "int", nullable: true),
                     EmploymentType = table.Column<int>(type: "int", nullable: true),
                     SalaryType = table.Column<int>(type: "int", nullable: false),
-                    PayFrequency = table.Column<int>(type: "int", nullable: false),
                     BankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     BankAccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     TIN = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -312,6 +424,18 @@ namespace itpayroll.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Employees_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentId",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Employees_Positions_PositionId",
+                        column: x => x.PositionId,
+                        principalTable: "Positions",
+                        principalColumn: "PositionId",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Employees_Shifts_ShiftId",
                         column: x => x.ShiftId,
@@ -337,7 +461,8 @@ namespace itpayroll.Migrations
                     UndertimeMinutes = table.Column<int>(type: "int", nullable: false),
                     NightShiftHours = table.Column<double>(type: "float", nullable: false),
                     DayType = table.Column<int>(type: "int", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -457,16 +582,31 @@ namespace itpayroll.Migrations
                     GrossPay = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
                     TotalDeductions = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
                     NetPay = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    ProcessedById = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    ApprovedById = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Payrolls", x => x.PayrollId);
+                    table.ForeignKey(
+                        name: "FK_Payrolls_AspNetUsers_ApprovedById",
+                        column: x => x.ApprovedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Payrolls_AspNetUsers_ProcessedById",
+                        column: x => x.ProcessedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Payrolls_Employees_EmployeeId",
                         column: x => x.EmployeeId,
@@ -591,10 +731,20 @@ namespace itpayroll.Migrations
                 column: "PayrollId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Employees_DepartmentId",
+                table: "Employees",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Employees_EmployeeNumber",
                 table: "Employees",
                 column: "EmployeeNumber",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_PositionId",
+                table: "Employees",
+                column: "PositionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Employees_ShiftId",
@@ -639,15 +789,42 @@ namespace itpayroll.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payrolls_ApprovedById",
+                table: "Payrolls",
+                column: "ApprovedById");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payrolls_EmployeeId_PeriodStart_PeriodEnd",
                 table: "Payrolls",
                 columns: new[] { "EmployeeId", "PeriodStart", "PeriodEnd" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payrolls_ProcessedById",
+                table: "Payrolls",
+                column: "ProcessedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Positions_DepartmentId",
+                table: "Positions",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Positions_Name_DepartmentId",
+                table: "Positions",
+                columns: new[] { "Name", "DepartmentId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Shifts_ShiftName",
                 table: "Shifts",
                 column: "ShiftName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaxBrackets_SortOrder_Year",
+                table: "TaxBrackets",
+                columns: new[] { "SortOrder", "Year" },
                 unique: true);
         }
 
@@ -694,7 +871,19 @@ namespace itpayroll.Migrations
                 name: "Overtimes");
 
             migrationBuilder.DropTable(
+                name: "PagIBIGRates");
+
+            migrationBuilder.DropTable(
+                name: "PayrollSettings");
+
+            migrationBuilder.DropTable(
+                name: "PhilHealthRates");
+
+            migrationBuilder.DropTable(
                 name: "SSSContributions");
+
+            migrationBuilder.DropTable(
+                name: "TaxBrackets");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
@@ -709,7 +898,13 @@ namespace itpayroll.Migrations
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
+                name: "Positions");
+
+            migrationBuilder.DropTable(
                 name: "Shifts");
+
+            migrationBuilder.DropTable(
+                name: "Departments");
         }
     }
 }

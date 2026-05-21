@@ -108,7 +108,6 @@ namespace itpayroll.Data.Seed
                 DepartmentId = department?.DepartmentId,
                 PositionId = position?.PositionId,
                 SalaryType = SalaryType.Monthly,
-                PayFrequency = PayFrequency.Monthly,
                 CreatedBy = "SeedData",
                 CreatedDate = DateTime.UtcNow
             });

@@ -23,5 +23,20 @@ namespace itpayroll.Constant
         {
             return creatorRole == Roles.HR;
         }
+
+        private static readonly Dictionary<string, int> _roleLevels = new()
+        {
+            { Roles.SuperAdmin, 4 },
+            { Roles.Admin, 3 },
+            { Roles.HR, 2 },
+            { Roles.Employee, 1 }
+        };
+
+        public static bool CanApprove(string approverRole, string processorRole)
+        {
+            if (!_roleLevels.ContainsKey(approverRole) || !_roleLevels.ContainsKey(processorRole))
+                return false;
+            return _roleLevels[approverRole] > _roleLevels[processorRole];
+        }
     }
 }

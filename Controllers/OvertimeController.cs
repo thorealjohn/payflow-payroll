@@ -158,9 +158,15 @@ namespace itpayroll.Controllers
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
         public async Task<IActionResult> Approve(int id)
         {
-            var overtime = await _context.Overtimes.FindAsync(id);
+            var overtime = await _context.Overtimes
+                .Include(o => o.Employee)
+                .ThenInclude(e => e.User)
+                .FirstOrDefaultAsync(o => o.OvertimeId == id);
             if (overtime == null)
                 return NotFound();
+
+            if (!await CanApproveRequest(overtime.Employee?.User))
+                return RedirectToAction(nameof(Index));
 
             overtime.Status = OvertimeStatus.Approved;
             overtime.ApprovedBy = User.Identity?.Name;
@@ -176,9 +182,15 @@ namespace itpayroll.Controllers
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
         public async Task<IActionResult> Reject(int id, string rejectionReason)
         {
-            var overtime = await _context.Overtimes.FindAsync(id);
+            var overtime = await _context.Overtimes
+                .Include(o => o.Employee)
+                .ThenInclude(e => e.User)
+                .FirstOrDefaultAsync(o => o.OvertimeId == id);
             if (overtime == null)
                 return NotFound();
+
+            if (!await CanApproveRequest(overtime.Employee?.User))
+                return RedirectToAction(nameof(Index));
 
             overtime.Status = OvertimeStatus.Rejected;
             overtime.RejectionReason = rejectionReason;
@@ -188,6 +200,29 @@ namespace itpayroll.Controllers
 
             TempData["Success"] = "Overtime rejected successfully.";
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task<bool> CanApproveRequest(ApplicationUser? requestorUser)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null || requestorUser == null)
+                return false;
+
+            if (User.IsInRole(Roles.SuperAdmin))
+                return true;
+
+            var currentRoles = await _userManager.GetRolesAsync(currentUser);
+            var requestorRoles = await _userManager.GetRolesAsync(requestorUser);
+            var currentRole = currentRoles.FirstOrDefault() ?? "";
+            var requestorRole = requestorRoles.FirstOrDefault() ?? "";
+
+            if (!RoleHierarchy.CanApprove(currentRole, requestorRole))
+            {
+                TempData["Error"] = "You do not have sufficient authority to perform this action. Only someone with a higher role can approve or reject this request.";
+                return false;
+            }
+
+            return true;
         }
 
         [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR}")]
@@ -214,15 +249,16 @@ namespace itpayroll.Controllers
             if (overtime == null)
                 return NotFound();
 
-            _context.Overtimes.Remove(overtime);
+            overtime.Status = OvertimeStatus.Rejected;
+            _context.Overtimes.Update(overtime);
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Overtime record deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
-        public async Task<IActionResult> MyOvertime(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null)
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
+        public async Task<IActionResult> MyOvertime(string period = "ThisMonth", string? customDateFrom = null, string? customDateTo = null, int page = 1)
         {
             var user = await _userManager.GetUserAsync(User);
             var userId = user?.Id;
@@ -244,18 +280,25 @@ namespace itpayroll.Controllers
                 query = query.Where(o => o.Date <= to.Value);
             }
 
-            ViewBag.Period = period;
-            ViewBag.CustomDateFrom = customDateFrom;
-            ViewBag.CustomDateTo = customDateTo;
+            int pageSize = 10;
+            int total = await query.CountAsync();
 
             var overtimes = await query
                 .OrderByDescending(o => o.Date)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
+
+            ViewBag.Period = period;
+            ViewBag.CustomDateFrom = customDateFrom;
+            ViewBag.CustomDateTo = customDateTo;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
             return View(overtimes);
         }
 
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public IActionResult Create()
         {
             return View();
@@ -263,7 +306,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> Create(OvertimeViewModel model)
         {
             if (!ModelState.IsValid)
@@ -310,7 +353,7 @@ namespace itpayroll.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = $"{Roles.Employee}")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.HR},{Roles.Employee}")]
         public async Task<IActionResult> Cancel(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -332,7 +375,8 @@ namespace itpayroll.Controllers
                 return RedirectToAction(nameof(MyOvertime));
             }
 
-            _context.Overtimes.Remove(overtime);
+            overtime.Status = OvertimeStatus.Cancelled;
+            _context.Overtimes.Update(overtime);
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Overtime request cancelled.";

@@ -124,7 +124,7 @@ namespace itpayroll.Controllers
                 // Execute payroll queries sequentially and materialize
                 var totalPayrolls = await payrollQuery.CountAsync();
                 var totalPayrollAmount = await payrollQuery.SumAsync(p => p.NetPay);
-                var pendingPayrolls = await payrollQuery.CountAsync(p => p.Status == Models.PayrollStatus.Processed);
+                var pendingPayrolls = await payrollQuery.CountAsync(p => p.Status == Models.PayrollStatus.Processed || p.Status == Models.PayrollStatus.PendingApproval);
                 var monthlyPayrollExpense = await _context.Payrolls
                     .Where(p => p.PeriodStart.Month == DateTime.Today.Month
                         && p.PeriodStart.Year == DateTime.Today.Year)
@@ -367,7 +367,6 @@ namespace itpayroll.Controllers
                 EmploymentType = employee.EmploymentType,
                 BasicSalary = employee.BasicSalary,
                 SalaryType = employee.SalaryType,
-                PayFrequency = employee.PayFrequency,
                 BankName = employee.BankName,
                 BankAccountNumber = employee.BankAccountNumber,
                 TIN = employee.TIN,
@@ -455,7 +454,6 @@ namespace itpayroll.Controllers
             employee.EmploymentType = model.EmploymentType;
             employee.BasicSalary = model.BasicSalary;
             employee.SalaryType = model.SalaryType;
-            employee.PayFrequency = model.PayFrequency;
             employee.BankName = model.BankName;
             employee.BankAccountNumber = model.BankAccountNumber;
             employee.TIN = model.TIN;

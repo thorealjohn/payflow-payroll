@@ -9,7 +9,10 @@
         <h4 class="fw-bold mb-0">Positions</h4>
         <small class="text-muted">Manage job positions by department</small>
     </div>
-    <a asp-action="Create" class="btn btn-success">Add Position</a>
+    @if (User.IsInRole("SuperAdmin"))
+    {
+        <a asp-action="Create" class="btn btn-success">Add Position</a>
+    }
 </div>
 
 <div class="card">
@@ -21,27 +24,34 @@
                     <th class="px-4">Position</th>
                     <th class="px-4">Description</th>
                     <th class="px-4">Employees</th>
+                    <th class="px-4">Status</th>
                     <th class="text-end px-4">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var pos in Model)
                 {
-                    <tr>
+                    <tr class="@(!pos.IsActive ? "table-secondary" : "")">
                         <td class="px-4">@pos.Department?.Name</td>
                         <td class="px-4"><strong>@pos.Name</strong></td>
                         <td class="px-4">@(pos.Description ?? "-")</td>
                         <td class="px-4">@(employeeCounts.TryGetValue(pos.PositionId, out var empCount) ? empCount : 0)</td>
+                        <td class="px-4">
+                            <span class="badge @(pos.IsActive ? "bg-success" : "bg-secondary")">@(pos.IsActive ? "Active" : "Inactive")</span>
+                        </td>
                         <td class="text-end px-4">
-                            <a asp-action="Edit" asp-route-id="@pos.PositionId" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@pos.PositionId" class="btn btn-sm btn-outline-danger">Delete</a>
+                            @if (User.IsInRole("SuperAdmin"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@pos.PositionId" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a asp-action="Delete" asp-route-id="@pos.PositionId" class="btn btn-sm btn-outline-danger">@(pos.IsActive ? "Deactivate" : "Activate")</a>
+                            }
                         </td>
                     </tr>
                 }
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No positions found.</td>
+                        <td colspan="6" class="text-center text-muted py-4">No positions found.</td>
                     </tr>
                 }
             </tbody>

@@ -5,6 +5,7 @@
     int total = ViewBag.TotalPages ?? 1;
     int start = Math.Max(1, current - 2);
     int end = Math.Min(total, current + 2);
+    var currentUserRole = ViewBag.CurrentUserRole as string;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -46,7 +47,7 @@
                 @foreach (var emp in Model)
                 {
                     var badgeClass = emp.Status == itpayroll.Models.EmploymentStatus.Active ? "bg-success" : emp.Status == itpayroll.Models.EmploymentStatus.Inactive ? "bg-secondary" : "bg-danger";
-                    var salaryDisplay = emp.BasicSalary > 0 ? "PHP " + emp.BasicSalary.ToString("N2") : "-";
+                    var salaryDisplay = emp.BasicSalary > 0 ? "₱" + emp.BasicSalary.ToString("N2") : "-";
                     var accessRole = ViewBag.UserRoles != null && ViewBag.UserRoles.ContainsKey(emp.EmployeeId)
                         ? ViewBag.UserRoles[emp.EmployeeId]
                         : "-";
@@ -59,8 +60,15 @@
                         <td class="px-4">@emp.HireDate.ToString("MMM dd, yyyy")</td>
                         <td class="text-end px-4">
                             <a asp-action="Details" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-info">View</a>
-                            <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-warning">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-danger">Delete</a>
+                            @if (CanUserModify(currentUserRole!, accessRole))
+                            {
+                                <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-warning">Edit</a>
+                                <a asp-action="Delete" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted ms-2 small">No access</span>
+                            }
                         </td>
                     </tr>
                 }
@@ -103,3 +111,19 @@
            class="btn btn-sm btn-outline-primary @(current == total ? "disabled" : "")">Next</a>
     </div>
 </div>
+
+@functions {
+    bool CanUserModify(string currentUserRole, string? targetRole)
+    {
+        if (string.IsNullOrEmpty(targetRole)) return false;
+
+        return (currentUserRole, targetRole) switch
+        {
+            ("SuperAdmin", _) => true,
+            ("Admin", _) => true,
+            ("HR", "HR") => true,
+            ("HR", "Employee") => true,
+            _ => false
+        };
+    }
+}

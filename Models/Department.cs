@@ -14,6 +14,8 @@ namespace itpayroll.Models
         [MaxLength(250)]
         public string? Description { get; set; }
 
+        public bool IsActive { get; set; } = true;
+
         public ICollection<Position> Positions { get; set; } = new List<Position>();
     }
 }

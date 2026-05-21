@@ -81,4 +81,14 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/qrcode/qrcode.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var url = document.getElementById('qrCodeData').getAttribute('data-url');
+            QRCode.toCanvas(url, { width: 150 }, function (err, canvas) {
+                if (err) console.error(err);
+                document.getElementById('qrCode').appendChild(canvas);
+            });
+        });
+    </script>
 }

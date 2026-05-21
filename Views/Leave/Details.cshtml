@@ -75,7 +75,10 @@
                         @if (Model.Status == itpayroll.Models.LeaveStatus.Pending)
                         {
                             <div>
-                                <a asp-action="Approve" asp-route-id="@Model.LeaveRequestId" class="btn btn-success">Approve</a>
+                                <form asp-action="Approve" asp-route-id="@Model.LeaveRequestId" method="post" class="d-inline" onsubmit="return confirm('Approve this leave request?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-success">Approve</button>
+                                </form>
                                 <a asp-action="Reject" asp-route-id="@Model.LeaveRequestId" class="btn btn-danger">Reject</a>
                             </div>
                         }

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using itpayroll.Areas.Identity.Data;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace itpayroll.Models
@@ -43,6 +44,21 @@ namespace itpayroll.Models
         [StringLength(450)]
         public string ModifiedBy { get; set; } = string.Empty;
 
+        // APPROVAL WORKFLOW
+        [StringLength(450)]
+        public string? ProcessedById { get; set; }
+
+        [ForeignKey(nameof(ProcessedById))]
+        public ApplicationUser? ProcessedBy { get; set; }
+
+        [StringLength(450)]
+        public string? ApprovedById { get; set; }
+
+        [ForeignKey(nameof(ApprovedById))]
+        public ApplicationUser? ApprovedBy { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
         // CONCURRENCY
         [Timestamp]
         public byte[]? RowVersion { get; set; }
@@ -77,6 +93,8 @@ namespace itpayroll.Models
     {
         Draft,
         Processed,
+        PendingApproval,
+        Approved,
         Released
     }
 }

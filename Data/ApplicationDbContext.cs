@@ -25,6 +25,10 @@ namespace itpayroll.Data
         public DbSet<EmployeeShiftAssignment> EmployeeShiftAssignments { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Position> Positions { get; set; }
+        public DbSet<PayrollSetting> PayrollSettings { get; set; }
+        public DbSet<TaxBracket> TaxBrackets { get; set; }
+        public DbSet<PhilHealthRate> PhilHealthRates { get; set; }
+        public DbSet<PagIBIGRate> PagIBIGRates { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             // AuditLog index (for performance)
@@ -81,6 +85,23 @@ namespace itpayroll.Data
                 .HasForeignKey(p => p.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<Payroll>()
+                .HasOne(p => p.ProcessedBy)
+                .WithMany()
+                .HasForeignKey(p => p.ProcessedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Payroll>()
+                .HasOne(p => p.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(p => p.ApprovedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Payroll>()
+                .Property(p => p.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
             // Earning relation
             builder.Entity<Earning>()
                 .HasOne(e => e.Payroll)
@@ -118,6 +139,35 @@ namespace itpayroll.Data
                     entity.Property(e => e.MaxSalary).HasPrecision(12, 2);
                     entity.Property(e => e.EmployeeShare).HasPrecision(12, 2);
                     entity.Property(e => e.EmployerShare).HasPrecision(12, 2);
+                    entity.Property(e => e.MSC).HasPrecision(12, 2);
+                    entity.Property(e => e.ECC).HasPrecision(12, 2);
+                    entity.Property(e => e.TotalContribution).HasPrecision(12, 2);
+                });
+
+                builder.Entity<TaxBracket>(entity =>
+                {
+                    entity.Property(e => e.MinAmount).HasPrecision(14, 2);
+                    entity.Property(e => e.MaxAmount).HasPrecision(14, 2);
+                    entity.Property(e => e.BaseTax).HasPrecision(14, 2);
+                    entity.Property(e => e.TaxRate).HasPrecision(5, 4);
+                    entity.HasIndex(e => new { e.SortOrder, e.Year }).IsUnique();
+                });
+
+                builder.Entity<PhilHealthRate>(entity =>
+                {
+                    entity.Property(e => e.MinSalary).HasPrecision(12, 2);
+                    entity.Property(e => e.MaxSalary).HasPrecision(12, 2);
+                    entity.Property(e => e.Rate).HasPrecision(5, 4);
+                    entity.Property(e => e.EmployeeSharePercentage).HasPrecision(5, 4);
+                });
+
+                builder.Entity<PagIBIGRate>(entity =>
+                {
+                    entity.Property(e => e.MinSalary).HasPrecision(12, 2);
+                    entity.Property(e => e.MaxSalary).HasPrecision(12, 2);
+                    entity.Property(e => e.EmployeeRate).HasPrecision(5, 4);
+                    entity.Property(e => e.EmployerRate).HasPrecision(5, 4);
+                    entity.Property(e => e.MaxContribution).HasPrecision(12, 2);
                 });
 
                 // Shift configuration

@@ -19,6 +19,7 @@ namespace itpayroll.Data.Seed
                         GracePeriodMinutes = 10,
                         IsNightShift = false,
                         IsActive = true,
+                        RestDays = "Saturday,Sunday",
                         Description = "Standard day shift (8AM to 5PM with 1-hour lunch break)"
                     },
                     new Shift
@@ -29,6 +30,7 @@ namespace itpayroll.Data.Seed
                         GracePeriodMinutes = 10,
                         IsNightShift = false,
                         IsActive = true,
+                        RestDays = "Saturday,Sunday",
                         Description = "Early morning shift (7AM to 4PM)"
                     },
                     new Shift
@@ -39,6 +41,7 @@ namespace itpayroll.Data.Seed
                         GracePeriodMinutes = 15,
                         IsNightShift = true,
                         IsActive = true,
+                        RestDays = "Saturday,Sunday",
                         Description = "Night shift (9PM to 6AM next day)"
                     },
                     new Shift
@@ -49,6 +52,7 @@ namespace itpayroll.Data.Seed
                         GracePeriodMinutes = 15,
                         IsNightShift = true,
                         IsActive = true,
+                        RestDays = "Saturday,Sunday",
                         Description = "Graveyard shift (10PM to 7AM next day)"
                     }
                 };

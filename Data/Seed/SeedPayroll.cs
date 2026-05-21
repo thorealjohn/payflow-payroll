@@ -17,7 +17,7 @@ namespace itpayroll.Data.Seed
                 context,
                 attendanceService,
                 new GovernmentService(context),
-                new TaxService());
+                new TaxService(context));
 
             foreach (var emp in employees)
             {

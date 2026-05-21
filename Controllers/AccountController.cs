@@ -126,6 +126,12 @@ namespace itpayroll.Controllers
                 await _userManager.UpdateAsync(user);
                 await _auditService.LogAsync(AuditAction.Login, "Account", LogType.Security);
 
+                if (!await _userManager.GetTwoFactorEnabledAsync(user))
+                {
+                    TempData["Warning"] = "Two-factor authentication is required. Please set up your authenticator app to continue.";
+                    return RedirectToPage("/Account/Manage/EnableAuthenticator", new { area = "Identity" });
+                }
+
                 if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl) && model.ReturnUrl != "/")
                 {
                     return LocalRedirect(model.ReturnUrl);
@@ -380,7 +386,6 @@ namespace itpayroll.Controllers
             model.EmploymentType = employee?.EmploymentType;
             model.BasicSalary = employee?.BasicSalary ?? 0;
             model.SalaryType = employee?.SalaryType ?? SalaryType.Monthly;
-            model.PayFrequency = employee?.PayFrequency ?? PayFrequency.Monthly;
             model.BankName = employee?.BankName;
             model.BankAccountNumber = employee?.BankAccountNumber;
             model.TIN = employee?.TIN;

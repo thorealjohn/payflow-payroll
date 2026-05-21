@@ -69,6 +69,10 @@
                                     </div>
                                 }
 
+                                <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Two-factor authentication is required by your organization and cannot be disabled.</span>
+                                </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     @if (Model.IsMachineRemembered)
                                     {
@@ -78,9 +82,6 @@
                                             </button>
                                         </form>
                                     }
-                                    <a asp-page="./Disable2fa" class="btn btn-outline-danger">
-                                        <i class="fas fa-shield-slash me-2"></i>Disable 2FA
-                                    </a>
                                     <a asp-page="./GenerateRecoveryCodes" class="btn btn-outline-warning">
                                         <i class="fas fa-redo me-2"></i>Reset Recovery Codes
                                     </a>

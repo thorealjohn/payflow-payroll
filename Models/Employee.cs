@@ -57,8 +57,6 @@ namespace itpayroll.Models
         // PAYROLL INFORMATION
         public SalaryType SalaryType { get; set; } = SalaryType.Monthly;
 
-        public PayFrequency PayFrequency { get; set; } = PayFrequency.Monthly;
-
         [MaxLength(100)]
         public string? BankName { get; set; }
 
@@ -122,9 +120,11 @@ namespace itpayroll.Models
 
     public enum EmploymentType
     {
-        FullTime,
+        Regular,
         PartTime,
-        Contractual
+        Contractual,
+        Probationary,
+        Intern
     }
 
     public enum SalaryType
@@ -132,12 +132,5 @@ namespace itpayroll.Models
         Monthly,
         Daily,
         Hourly
-    }
-
-    public enum PayFrequency
-    {
-        Weekly,
-        SemiMonthly,
-        Monthly
     }
 }
