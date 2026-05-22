@@ -8,26 +8,27 @@
     <small class="text-muted">Update employee information and system access role</small>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <form asp-action="Edit" method="post">
-            <input type="hidden" asp-for="EmployeeId" />
-            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="EmployeeId" />
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Personal Information</h6>
+        </div>
+        <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="FirstName" class="form-label"></label>
                     <input asp-for="FirstName" class="form-control" />
                     <span asp-validation-for="FirstName" class="text-danger"></span>
                 </div>
-
                 <div class="col-md-6 mb-3">
                     <label asp-for="LastName" class="form-label"></label>
                     <input asp-for="LastName" class="form-control" />
                     <span asp-validation-for="LastName" class="text-danger"></span>
                 </div>
             </div>
-
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="MiddleName" class="form-label"></label>
@@ -40,7 +41,6 @@
                     <span asp-validation-for="Suffix" class="text-danger"></span>
                 </div>
             </div>
-
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label asp-for="DateOfBirth" class="form-label"></label>
@@ -62,7 +62,6 @@
                     <span asp-validation-for="CivilStatus" class="text-danger"></span>
                 </div>
             </div>
-
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="Nationality" class="form-label"></label>
@@ -75,8 +74,14 @@
                     <span asp-validation-for="PhoneNumber" class="text-danger"></span>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <h6 class="mb-3">Contact Information</h6>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-address-book me-2 text-info"></i>Contact Information</h6>
+        </div>
+        <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="AddressStreet" class="form-label"></label>
@@ -89,7 +94,6 @@
                     <span asp-validation-for="AddressBarangay" class="text-danger"></span>
                 </div>
             </div>
-
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label asp-for="AddressCity" class="form-label"></label>
@@ -107,7 +111,8 @@
                     <span asp-validation-for="AddressZipCode" class="text-danger"></span>
                 </div>
             </div>
-
+            <hr class="my-3" />
+            <h6 class="text-muted mb-3"><i class="fas fa-phone-alt me-2"></i>Emergency Contact</h6>
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label asp-for="EmergencyContactName" class="form-label"></label>
@@ -125,8 +130,20 @@
                     <span asp-validation-for="EmergencyContactPhone" class="text-danger"></span>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-briefcase me-2 text-success"></i>Employment Information</h6>
+        </div>
+        <div class="card-body">
             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="EmployeeNumber" class="form-label"></label>
+                    <input asp-for="EmployeeNumber" class="form-control" />
+                    <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
+                </div>
                 <div class="col-md-6 mb-3">
                     <label asp-for="Role" class="form-label"></label>
                     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
@@ -141,21 +158,13 @@
                     }
                     <span asp-validation-for="Role" class="text-danger"></span>
                 </div>
-
+            </div>
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="Status" class="form-label"></label>
                     <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Models.EmploymentStatus>()"></select>
                     <span asp-validation-for="Status" class="text-danger"></span>
                 </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label asp-for="EmployeeNumber" class="form-label"></label>
-                    <input asp-for="EmployeeNumber" class="form-control" />
-                    <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
-                </div>
-
                 <div class="col-md-6 mb-3">
                     <label asp-for="DepartmentId" class="form-label"></label>
                     <select asp-for="DepartmentId" class="form-select" asp-items="ViewBag.Departments" id="departmentSelect" required>
@@ -163,7 +172,8 @@
                     </select>
                     <span asp-validation-for="DepartmentId" class="text-danger"></span>
                 </div>
-
+            </div>
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="PositionId" class="form-label"></label>
                     <select asp-for="PositionId" class="form-select" asp-items="ViewBag.Positions" id="positionSelect" required>
@@ -171,9 +181,6 @@
                     </select>
                     <span asp-validation-for="PositionId" class="text-danger"></span>
                 </div>
-            </div>
-
-            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="ShiftId" class="form-label"></label>
                     <select asp-for="ShiftId" class="form-select" asp-items="ViewBag.Shifts">
@@ -182,52 +189,69 @@
                     <span asp-validation-for="ShiftId" class="text-danger"></span>
                 </div>
             </div>
-
-            <!-- Employee payroll fields -->
-            <div id="employeeOnlyFields">
-                <hr />
-                <h6 class="mb-3">Payroll Details</h6>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="BasicSalary" class="form-label"></label>
-                        <input asp-for="BasicSalary" class="form-control" type="number" step="0.01" />
-                        <span asp-validation-for="BasicSalary" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="HireDate" class="form-label"></label>
-                        <input asp-for="HireDate" class="form-control" type="date" />
-                        <span asp-validation-for="HireDate" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="TerminationDate" class="form-label"></label>
-                    <input asp-for="TerminationDate" class="form-control" type="date" />
-                    <span asp-validation-for="TerminationDate" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
+            <div class="row">
+                <div class="col-md-6 mb-3">
                     <label asp-for="EmploymentType" class="form-label"></label>
                     <select asp-for="EmploymentType" class="form-select" asp-items="Html.GetEnumSelectList<itpayroll.Models.EmploymentType>()" id="employmentTypeSelect">
                         <option value="">-- Select Employment Type --</option>
                     </select>
                     <span asp-validation-for="EmploymentType" class="text-danger"></span>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <hr />
-                <h6 class="mb-3">Payroll Information</h6>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="SalaryType" class="form-label"></label>
-                        <select asp-for="SalaryType" class="form-select">
-                            <option value="0">Monthly</option>
-                            <option value="1">Daily</option>
-                            <option value="2">Hourly</option>
-                        </select>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-coins me-2 text-warning"></i>Payroll Information</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="BasicSalary" class="form-label"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">₱</span>
+                        <input asp-for="BasicSalary" class="form-control" id="basicSalaryInput" />
                     </div>
+                    <span asp-validation-for="BasicSalary" class="text-danger"></span>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="SalaryType" class="form-label"></label>
+                    <select asp-for="SalaryType" class="form-select">
+                        <option value="0">Monthly</option>
+                        <option value="1">Daily</option>
+                        <option value="2">Hourly</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="HireDate" class="form-label"></label>
+                    <input asp-for="HireDate" class="form-control" type="date" />
+                    <span asp-validation-for="HireDate" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="TerminationDate" class="form-label"></label>
+                    <input asp-for="TerminationDate" class="form-control" type="date" />
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-university me-2 text-secondary"></i>Banking Information</h6>
+        </div>
+        <div class="card-body">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="bankToggle"
+                @(!string.IsNullOrEmpty(Model.BankName) || !string.IsNullOrEmpty(Model.BankAccountNumber) ? "checked" : "") />
+                <label class="form-check-label" for="bankToggle">
+                    Add bank account details
+                </label>
+                <small class="text-muted d-block">Not all employees have payroll bank accounts.</small>
+            </div>
+            <div class="collapse@(!string.IsNullOrEmpty(Model.BankName) || !string.IsNullOrEmpty(Model.BankAccountNumber) ? " show" : "")" id="bankFields">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="BankName" class="form-label"></label>
@@ -238,69 +262,56 @@
                         <input asp-for="BankAccountNumber" class="form-control" />
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="TIN" class="form-label"></label>
-                        <input asp-for="TIN" class="form-control" />
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="SSSNumber" class="form-label"></label>
-                        <input asp-for="SSSNumber" class="form-control" />
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="PhilHealthNumber" class="form-label"></label>
-                        <input asp-for="PhilHealthNumber" class="form-control" />
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="PagIBIGNumber" class="form-label"></label>
-                        <input asp-for="PagIBIGNumber" class="form-control" />
-                    </div>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-id-card me-2 text-danger"></i>Government IDs</h6>
+        </div>
+        <div class="card-body">
+            <small class="text-muted d-block mb-3">Enter numbers in the correct format for validation.</small>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="TIN" class="form-label"></label>
+                    <input asp-for="TIN" class="form-control" placeholder="XXX-XXX-XXX" maxlength="15" data-gov-type="tin" />
+                    <span asp-validation-for="TIN" class="text-danger"></span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="SSSNumber" class="form-label"></label>
+                    <input asp-for="SSSNumber" class="form-control" placeholder="XX-XXXXXXX-X" maxlength="12" data-gov-type="sss" />
+                    <span asp-validation-for="SSSNumber" class="text-danger"></span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="PhilHealthNumber" class="form-label"></label>
+                    <input asp-for="PhilHealthNumber" class="form-control" placeholder="XX-XXXXXXXXX-X" maxlength="14" data-gov-type="philhealth" />
+                    <span asp-validation-for="PhilHealthNumber" class="text-danger"></span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="PagIBIGNumber" class="form-label"></label>
+                    <input asp-for="PagIBIGNumber" class="form-control" placeholder="XXXX-XXXX-XXXX" maxlength="14" data-gov-type="pagibig" />
+                    <span asp-validation-for="PagIBIGNumber" class="text-danger"></span>
                 </div>
             </div>
-
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
-            </div>
-        </form>
+        </div>
     </div>
-</div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </div>
+</form>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        var roleDefaults = @Html.Raw(ViewBag.RoleDefaults ?? "{}");
-
         document.addEventListener('DOMContentLoaded', function () {
-            var roleSelect = document.getElementById('roleSelect');
             var departmentSelect = document.getElementById('departmentSelect');
             var positionSelect = document.getElementById('positionSelect');
-            var employeeFields = document.getElementById('employeeOnlyFields');
-            var salaryInput = document.getElementById('BasicSalary');
-            var shiftSelect = document.getElementById('ShiftId');
-            var employmentTypeSelect = document.getElementById('employmentTypeSelect');
-
-            function toggleEmployeeFields() {
-                employeeFields.style.display = 'block';
-                if (salaryInput) salaryInput.required = true;
-                if (shiftSelect) shiftSelect.required = true;
-                if (employmentTypeSelect) employmentTypeSelect.required = true;
-            }
-
-            function applyRoleDefaults() {
-                var defaults = roleDefaults[roleSelect.value];
-                if (defaults) {
-                    if (defaults.departmentId) {
-                        departmentSelect.value = defaults.departmentId;
-                        loadPositions(defaults.departmentId, defaults.positionId || null);
-                        return;
-                    }
-                    if (defaults.positionId) {
-                        positionSelect.value = defaults.positionId;
-                    }
-                }
-            }
+            var salaryInput = document.getElementById('basicSalaryInput');
+            var bankToggle = document.getElementById('bankToggle');
+            var bankFields = document.getElementById('bankFields');
 
             function loadPositions(departmentId, selectedPositionId) {
                 positionSelect.innerHTML = '<option value="">-- Select Position --</option>';
@@ -326,16 +337,58 @@
                     });
             }
 
+            function formatSalary(value) {
+                if (!value) return '';
+                var num = parseFloat(value.replace(/[^0-9.-]/g, ''));
+                if (isNaN(num)) return value;
+                return num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function unformatSalary(value) {
+                return value.replace(/[^0-9.-]/g, '');
+            }
+
+            if (salaryInput) {
+                if (salaryInput.value) {
+                    salaryInput.value = formatSalary(salaryInput.value);
+                }
+                salaryInput.addEventListener('focus', function () {
+                    this.value = unformatSalary(this.value);
+                });
+                salaryInput.addEventListener('blur', function () {
+                    if (this.value) {
+                        this.value = formatSalary(this.value);
+                    }
+                });
+                salaryInput.addEventListener('input', function () {
+                    var raw = unformatSalary(this.value);
+                    if (raw && !isNaN(parseFloat(raw))) {
+                        this.value = raw;
+                    }
+                });
+            }
+
+            if (bankToggle) {
+                bankToggle.addEventListener('change', function () {
+                    var bs = new bootstrap.Collapse(bankFields, { toggle: false });
+                    if (this.checked) {
+                        bs.show();
+                    } else {
+                        bs.hide();
+                    }
+                });
+            }
+
             departmentSelect.addEventListener('change', function () {
                 loadPositions(this.value, null);
             });
 
-            roleSelect.addEventListener('change', function () {
-                toggleEmployeeFields();
-                applyRoleDefaults();
+            document.querySelectorAll('[data-gov-type]').forEach(function (el) {
+                if (el.value) {
+                    var event = new Event('input', { bubbles: true });
+                    el.dispatchEvent(event);
+                }
             });
-
-            toggleEmployeeFields();
         });
     </script>
 }

@@ -120,8 +120,8 @@
         return (currentUserRole, targetRole) switch
         {
             ("SuperAdmin", _) => true,
-            ("Admin", _) => true,
-            ("HR", "HR") => true,
+            ("Admin", "HR") => true,
+            ("Admin", "Employee") => true,
             ("HR", "Employee") => true,
             _ => false
         };

@@ -131,19 +131,23 @@ namespace itpayroll.ViewModels
         public string? BankAccountNumber { get; set; }
 
         [Display(Name = "TIN")]
-        [MaxLength(50)]
+        [MaxLength(15)]
+        [RegularExpression(@"^\d{3}-\d{3}-\d{3}(-\d{3})?$", ErrorMessage = "TIN must be in format XXX-XXX-XXX or XXX-XXX-XXX-XXX")]
         public string? TIN { get; set; }
 
         [Display(Name = "SSS Number")]
-        [MaxLength(50)]
+        [MaxLength(12)]
+        [RegularExpression(@"^\d{2}-\d{7}-\d$", ErrorMessage = "SSS must be in format XX-XXXXXXX-X")]
         public string? SSSNumber { get; set; }
 
         [Display(Name = "PhilHealth Number")]
-        [MaxLength(50)]
+        [MaxLength(14)]
+        [RegularExpression(@"^\d{2}-\d{7,9}-\d$", ErrorMessage = "PhilHealth must be in format XX-XXXXXXX-X or XX-XXXXXXXXX-X")]
         public string? PhilHealthNumber { get; set; }
 
         [Display(Name = "Pag-IBIG Number")]
-        [MaxLength(50)]
+        [MaxLength(14)]
+        [RegularExpression(@"^\d{4}-\d{4}-\d{4}$", ErrorMessage = "Pag-IBIG must be in format XXXX-XXXX-XXXX")]
         public string? PagIBIGNumber { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

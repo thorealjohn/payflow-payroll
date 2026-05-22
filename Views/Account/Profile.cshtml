@@ -1,3 +1,4 @@
+@using itpayroll.Utilities
 @model itpayroll.ViewModels.ProfileViewModel
 
 @{
@@ -179,7 +180,7 @@
                 </div>
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(Model.EmployeeNumber) || !string.IsNullOrWhiteSpace(Model.Department) || !string.IsNullOrWhiteSpace(Model.Position))
+            @if (!string.IsNullOrWhiteSpace(Model.EmployeeNumber) || !string.IsNullOrWhiteSpace(Model.Department) || !string.IsNullOrWhiteSpace(Model.Position) || !string.IsNullOrWhiteSpace(Model.BankName))
             {
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -211,6 +212,35 @@
                             <div class="col-md-4">
                                 <label asp-for="ShiftName" class="form-label"></label>
                                 <input asp-for="ShiftName" class="form-control" disabled />
+                            </div>
+                        </div>
+
+                        <hr />
+                        <h6 class="mb-3">Bank & Government Numbers</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="BankName" class="form-label"></label>
+                                <input asp-for="BankName" class="form-control" disabled />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="BankAccountNumber" class="form-label"></label>
+                                <input class="form-control" disabled value="@DisplayHelper.MaskAccountNumber(Model.BankAccountNumber)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="TIN" class="form-label"></label>
+                                <input class="form-control" disabled value="@DisplayHelper.MaskAccountNumber(Model.TIN)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="SSSNumber" class="form-label"></label>
+                                <input class="form-control" disabled value="@DisplayHelper.MaskAccountNumber(Model.SSSNumber)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="PhilHealthNumber" class="form-label"></label>
+                                <input class="form-control" disabled value="@DisplayHelper.MaskAccountNumber(Model.PhilHealthNumber)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="PagIBIGNumber" class="form-label"></label>
+                                <input class="form-control" disabled value="@DisplayHelper.MaskAccountNumber(Model.PagIBIGNumber)" />
                             </div>
                         </div>
                     </div>

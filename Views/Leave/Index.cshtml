@@ -114,7 +114,7 @@
                             <a asp-action="Details" asp-route-id="@l.LeaveRequestId" class="btn btn-sm btn-outline-info">View</a>
                             @if (l.Status == itpayroll.Models.LeaveStatus.Pending)
                             {
-                                <form asp-action="Approve" asp-route-id="@l.LeaveRequestId" method="post" class="d-inline" onsubmit="return confirm('Approve this leave request?');">
+                                <form asp-action="Approve" asp-route-id="@l.LeaveRequestId" method="post" class="d-inline-block m-0 p-0" onsubmit="return confirm('Approve this leave request?');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
                                 </form>

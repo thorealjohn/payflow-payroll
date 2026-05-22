@@ -263,25 +263,25 @@
                                 <div class="col-md-3">
                                     <div class="mb-3">
                                         <label asp-for="TIN" class="form-label"></label>
-                                        <input asp-for="TIN" class="form-control" />
+                                        <input asp-for="TIN" class="form-control" placeholder="XXX-XXX-XXX" maxlength="15" data-gov-type="tin" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="mb-3">
                                         <label asp-for="SSSNumber" class="form-label"></label>
-                                        <input asp-for="SSSNumber" class="form-control" />
+                                        <input asp-for="SSSNumber" class="form-control" placeholder="XX-XXXXXXX-X" maxlength="12" data-gov-type="sss" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="mb-3">
                                         <label asp-for="PhilHealthNumber" class="form-label"></label>
-                                        <input asp-for="PhilHealthNumber" class="form-control" />
+                                        <input asp-for="PhilHealthNumber" class="form-control" placeholder="XX-XXXXXXXXX-X" maxlength="14" data-gov-type="philhealth" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="mb-3">
                                         <label asp-for="PagIBIGNumber" class="form-label"></label>
-                                        <input asp-for="PagIBIGNumber" class="form-control" />
+                                        <input asp-for="PagIBIGNumber" class="form-control" placeholder="XXXX-XXXX-XXXX" maxlength="14" data-gov-type="pagibig" />
                                     </div>
                                 </div>
                             </div>
@@ -476,6 +476,13 @@
                         });
                 });
             }
+
+            document.querySelectorAll('[data-gov-type]').forEach(function (el) {
+                if (el.value) {
+                    var event = new Event('input', { bubbles: true });
+                    el.dispatchEvent(event);
+                }
+            });
         });
     </script>
 }

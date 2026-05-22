@@ -82,6 +82,13 @@
             <tbody>
                 @foreach (var ot in Model)
                 {
+
+					var currentUserRole = ViewBag.CurrentUserRole as string;
+                    var accessRole = ViewBag.UserRoles != null && ViewBag.UserRoles.ContainsKey(ot.EmployeeId)
+                        ? ViewBag.UserRoles[ot.EmployeeId]
+					: null;
+
+					var canModify = CanUserModify(currentUserRole!, accessRole);
                     <tr>
                         <td class="px-4">
                             @ot.Employee?.User?.FirstName @ot.Employee?.User?.LastName
@@ -116,38 +123,56 @@
                     </td>
 
                         <td class="text-end px-4">
-                            <a asp-action="Details" asp-route-id="@ot.OvertimeId"
-                               class="btn btn-sm btn-outline-info">View</a>
 
-                        @if (ot.Status == OvertimeStatus.Pending)
-                            {
-                                <a asp-action="Edit" asp-route-id="@ot.OvertimeId"
-                                   class="btn btn-sm btn-outline-warning">Edit</a>
+    <a asp-action="Details"
+       asp-route-id="@ot.OvertimeId"
+       class="btn btn-sm btn-outline-info">
+        View
+    </a>
 
-                                <form asp-action="Approve"
-                                      asp-route-id="@ot.OvertimeId"
-                                      method="post"
-                                      class="d-inline">
-                                    <button type="submit"
-                                            class="btn btn-sm btn-outline-success"
-                                            onclick="return confirm('Approve this overtime?')">
-                                        Approve
-                                    </button>
-                                </form>
+    @if (CanUserModify(currentUserRole!, accessRole))
+    {
+        @if (canModify && ot.Status == OvertimeStatus.Pending)
+        {
+            <a asp-action="Edit"
+               asp-route-id="@ot.OvertimeId"
+               class="btn btn-sm btn-outline-warning">
+                Edit
+            </a>
 
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-danger"
-                                        onclick="showRejectModal(@ot.OvertimeId)">
-                                    Reject
-                                </button>
-                            }
+            <form asp-action="Approve"
+                  asp-route-id="@ot.OvertimeId"
+                  method="post"
+                  class="d-inline-block m-0 p-0">
 
-                            <a asp-action="Delete"
-                               asp-route-id="@ot.OvertimeId"
-                               class="btn btn-sm btn-outline-danger">
-                                Delete
-                            </a>
-                        </td>
+                <button type="submit"
+                        class="btn btn-sm btn-outline-success"
+                        onclick="return confirm('Approve this overtime?')">
+                    Approve
+                </button>
+            </form>
+
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="showRejectModal(@ot.OvertimeId)">
+                Reject
+            </button>
+        }
+
+        <a asp-action="Delete"
+           asp-route-id="@ot.OvertimeId"
+           class="btn btn-sm btn-outline-danger">
+            Delete
+        </a>
+    }
+    else
+    {
+        <span class="text-muted ms-2 small">
+            No access
+        </span>
+    }
+
+</td>
                     </tr>
                 }
 
@@ -241,6 +266,22 @@
         </div>
     </div>
 </div>
+
+@functions {
+    bool CanUserModify(string currentUserRole, string? targetRole)
+    {
+        if (string.IsNullOrEmpty(targetRole)) return false;
+
+        return (currentUserRole, targetRole) switch
+        {
+            ("SuperAdmin", _) => true,
+            ("Admin", "HR") => true,
+            ("Admin", "Employee") => true,
+            ("HR", "Employee") => true,
+            _ => false
+        };
+    }
+}
 
 @section Scripts {
     <script>
